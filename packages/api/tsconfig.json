@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "sourceMap": true,
+        "declaration": false,
+        "experimentalDecorators": true,
+        "moduleResolution": "nodenext",
+        "target": "ESNext",
+        "module": "NodeNext",
+        "preserveSymlinks": true,
+        "esModuleInterop": true,
+        "outDir": "./dist",
+        "skipLibCheck": true,
+        "incremental": false,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true
+    },
+    "include": ["src/**/*", "tests/**/*"],
+    "exclude": ["src/**/*.spec.ts"],
+    "reflection": true
+}

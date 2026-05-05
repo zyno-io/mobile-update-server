@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mobile-update-server
+description: Self-hosted Expo Updates server for distributing OTA updates
+type: application
+version: 0.1.0
+appVersion: '0.1.0'

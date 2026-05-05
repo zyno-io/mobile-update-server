@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mus-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+    ports:
+      - '3308:3306'
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-psecret']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mus-redis
+    ports:
+      - '6381:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  s3:
+    image: chrislusf/seaweedfs:latest
+    container_name: mus-s3
+    ports:
+      - '29445:8333'
+    command: 'server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data -volume.minFreeSpace=100M'
+    volumes:
+      - s3-data:/data
+      - ./seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:9333/cluster/status']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql-data:
+  s3-data:

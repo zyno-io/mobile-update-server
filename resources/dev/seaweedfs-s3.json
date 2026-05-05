@@ -1,0 +1,14 @@
+{
+    "identities": [
+        {
+            "name": "dev",
+            "credentials": [
+                {
+                    "accessKey": "AKIAIOSFODNN7EXAMPLE",
+                    "secretKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                }
+            ],
+            "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+        }
+    ]
+}

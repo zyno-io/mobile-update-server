@@ -1,0 +1,43 @@
+{
+    "name": "@zyno-io/mobile-update-server-api",
+    "version": "0.1.0",
+    "private": true,
+    "license": "MIT",
+    "main": "./dist/src/index.js",
+    "scripts": {
+        "build": "dksf-dev build",
+        "dev": "dksf-dev run",
+        "migrate": "dksf-dev migrate",
+        "migrate:create": "dksf-dev migrate:create",
+        "test": "dksf-dev test",
+        "gen": "generate-openapi-client",
+        "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.1045.0",
+        "@aws-sdk/s3-request-presigner": "^3.1045.0",
+        "@deepkit/app": "1.0.19",
+        "@deepkit/event": "1.0.19",
+        "@deepkit/framework": "1.0.19",
+        "@deepkit/http": "1.0.19",
+        "@deepkit/logger": "1.0.19",
+        "@deepkit/orm": "1.0.19",
+        "@deepkit/sql": "1.0.19",
+        "@deepkit/template": "1.0.19",
+        "@deepkit/type": "1.0.19",
+        "@deepkit/type-compiler": "1.0.19",
+        "@types/lodash": "^4.17.24",
+        "@types/mime-types": "^3.0.1",
+        "@zyno-io/dk-server-foundation": "26.509.2227",
+        "axios": "^1.16.0",
+        "fast-jwt": "^6.2.4",
+        "googleapis": "^171.4.0",
+        "lodash": "^4.18.1",
+        "mime-types": "^3.0.2"
+    },
+    "devDependencies": {
+        "@types/node": "^25.6.2",
+        "dotenv-cli": "^11.0.0",
+        "typescript": "~6.0"
+    }
+}

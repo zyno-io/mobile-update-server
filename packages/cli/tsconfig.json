@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "sourceMap": true,
+        "declaration": false,
+        "moduleResolution": "nodenext",
+        "target": "ESNext",
+        "module": "NodeNext",
+        "esModuleInterop": true,
+        "rootDir": "./src",
+        "outDir": "./dist",
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true,
+        "types": ["node"]
+    },
+    "include": ["src/**/*"]
+}

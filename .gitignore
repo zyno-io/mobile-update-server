@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.yarn/cache/
+.yarn/install-state.gz
+.yarn/build-state.yml
+.yarn/unplugged/
+.pnp.*
+.env
+.env.local
+*.log
+.DS_Store
+packages/api/static/
+packages/ui/playwright-report/
+packages/ui/test-results/
+packages/ui/screenshots/

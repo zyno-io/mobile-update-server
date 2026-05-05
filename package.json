@@ -1,0 +1,29 @@
+{
+    "name": "mobile-update-server",
+    "version": "0.1.0",
+    "private": true,
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "dev:api": "yarn workspace @zyno-io/mobile-update-server-api dev",
+        "dev:cli": "yarn workspace @zyno-io/mobile-update-server-cli dev",
+        "dev:ui": "yarn workspace @zyno-io/mobile-update-server-ui dev",
+        "services:up": "docker compose -f resources/dev/docker-compose.yml up -d",
+        "services:down": "docker compose -f resources/dev/docker-compose.yml down",
+        "migrate": "yarn workspace @zyno-io/mobile-update-server-api migrate",
+        "build:api": "yarn workspace @zyno-io/mobile-update-server-api build",
+        "build:cli": "yarn workspace @zyno-io/mobile-update-server-cli build",
+        "build:ui": "yarn workspace @zyno-io/mobile-update-server-ui build",
+        "test:api": "yarn workspace @zyno-io/mobile-update-server-api test",
+        "test:e2e": "yarn workspace @zyno-io/mobile-update-server-ui test:e2e",
+        "test:e2e:update": "yarn workspace @zyno-io/mobile-update-server-ui test:e2e:update",
+        "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
+    },
+    "devDependencies": {
+        "lefthook": "^2.1.6",
+        "oxfmt": "^0.48.0",
+        "oxlint": "^1.63.0"
+    },
+    "packageManager": "yarn@4.13.0"
+}
