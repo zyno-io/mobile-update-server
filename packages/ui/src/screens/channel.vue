@@ -874,7 +874,7 @@ html.dark .update:hover {
     }
     .member-row {
         @apply grid items-center gap-2;
-        grid-template-columns: 90px 1fr 1fr auto;
+        grid-template-columns: 1fr 1fr auto;
         select,
         input {
             @apply text-sm;
