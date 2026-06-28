@@ -128,38 +128,16 @@ describe('manifest + native-status', () => {
         assert.doesNotMatch(body, new RegExp(`"id":"${released.id.toLowerCase()}"`));
     });
 
-    test('user-id matches a staging-list user-entry', async () => {
-        await clearUpdates();
-        await makeRelease('released');
-        const staging = await makeRelease('staging');
-
-        const response = await facade.request(manifestRequest('unknown-device', undefined, 'staging-user-1'));
-        assert.strictEqual(response.statusCode, 200);
-        assert.match(response.bodyString, new RegExp(`"id":"${staging.id.toLowerCase()}"`));
-    });
-
-    test('matching on either header is enough — device id alone qualifies', async () => {
-        await clearUpdates();
-        await makeRelease('released');
-        const canary = await makeRelease('canary');
-
-        const response = await facade.request(manifestRequest('canary-device-1', undefined, 'totally-unrelated-user'));
-        assert.strictEqual(response.statusCode, 200);
-        assert.match(response.bodyString, new RegExp(`"id":"${canary.id.toLowerCase()}"`));
-    });
-
-    test('user-id of "device" entry type does NOT match (type-discriminated)', async () => {
+    test('legacy user-id header does not qualify for rollout targeting', async () => {
         await clearUpdates();
         const released = await makeRelease('released');
-        const canary = await makeRelease('canary');
+        const staging = await makeRelease('staging');
 
-        // canary-device-1 is registered as a device entry; sending it via mus-user-id
-        // must not qualify the request for the canary tier.
-        const response = await facade.request(manifestRequest(undefined, undefined, 'canary-device-1'));
+        const response = await facade.request(manifestRequest(undefined, undefined, 'staging-device-1'));
         assert.strictEqual(response.statusCode, 200);
         const body = response.bodyString;
         assert.match(body, new RegExp(`"id":"${released.id.toLowerCase()}"`), 'should fall back to released');
-        assert.doesNotMatch(body, new RegExp(`"id":"${canary.id.toLowerCase()}"`));
+        assert.doesNotMatch(body, new RegExp(`"id":"${staging.id.toLowerCase()}"`));
     });
 
     test('no-update-available directive when client already has latest', async () => {
@@ -318,12 +296,10 @@ async function seedBase(gitlabPort: number) {
         iosTrackingEnabled: false,
         androidTrackingEnabled: false,
         stagingMembers: [
-            { type: 'device', id: 'staging-device-1', comment: 'lead engineer' },
-            { type: 'user', id: 'staging-user-1', comment: '' }
+            { type: 'device', id: 'staging-device-1', comment: 'lead engineer' }
         ],
         canaryMembers: [
-            { type: 'device', id: 'canary-device-1', comment: 'beta tester' },
-            { type: 'user', id: 'canary-user-1', comment: '' }
+            { type: 'device', id: 'canary-device-1', comment: 'beta tester' }
         ],
         createdAt: new Date(),
         deletedAt: null
@@ -371,7 +347,7 @@ async function makeRelease(status: 'staging' | 'canary' | 'released'): Promise<U
     return update;
 }
 
-function manifestRequest(deviceId?: string, currentUpdateId?: string, userId?: string) {
+function manifestRequest(deviceId?: string, currentUpdateId?: string, legacyUserId?: string) {
     const req = HttpRequest.GET(`/api/manifest/${APP_ID}`)
         .header('expo-protocol-version', '1')
         .header('expo-platform', 'ios')
@@ -379,7 +355,7 @@ function manifestRequest(deviceId?: string, currentUpdateId?: string, userId?: s
         .header('expo-channel-name', CHANNEL_ID)
         .header('accept', 'multipart/mixed');
     if (deviceId) req.header('mus-device-id', deviceId);
-    if (userId) req.header('mus-user-id', userId);
+    if (legacyUserId) req.header('mus-user-id', legacyUserId);
     if (currentUpdateId) req.header('expo-current-update-id', currentUpdateId);
     return req;
 }

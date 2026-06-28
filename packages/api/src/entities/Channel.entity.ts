@@ -1,7 +1,7 @@
 import { entity, PrimaryKey } from '@deepkit/type';
 import { BaseEntity, UuidString } from '@zyno-io/dk-server-foundation';
 
-export type RolloutMemberType = 'device' | 'user';
+export type RolloutMemberType = 'device';
 
 export interface IRolloutMember {
     type: RolloutMemberType;

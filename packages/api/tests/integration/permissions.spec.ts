@@ -90,7 +90,7 @@ describe('permissions (GitLab project membership)', () => {
         const stagingResp = await facade.request(
             HttpRequest.PUT(`/api/apps/${APP_ID}/channels/${CHANNEL_ID}/staging-members`)
                 .header('authorization', `Bearer ${jwt}`)
-                .json({ stagingMembers: [{ type: 'user', id: 'user-42' }] })
+                .json({ stagingMembers: [{ type: 'device', id: 'dev2' }] })
         );
         assert.strictEqual(stagingResp.statusCode, 200, 'developer should edit staging list');
 

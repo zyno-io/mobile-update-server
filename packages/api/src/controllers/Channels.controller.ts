@@ -96,8 +96,8 @@ export class ChannelsController {
             androidNativeUpdateRequiredAt: channel.androidNativeUpdateRequiredAt,
             iosStoreUrl: channel.iosStoreUrl,
             androidStoreUrl: channel.androidStoreUrl,
-            stagingMembers: channel.stagingMembers ?? [],
-            canaryMembers: channel.canaryMembers
+            stagingMembers: onlyDeviceMembers(channel.stagingMembers),
+            canaryMembers: onlyDeviceMembers(channel.canaryMembers)
         };
     }
 
@@ -315,17 +315,22 @@ function normalizeMembers(input: IRolloutMemberInput[] | null | undefined): IRol
         if (!raw || typeof raw !== 'object') {
             throw new HttpBadRequestError('each member must be an object');
         }
-        if (raw.type !== 'device' && raw.type !== 'user') {
-            throw new HttpBadRequestError('member type must be "device" or "user"');
+        if (raw.type !== 'device') {
+            throw new HttpBadRequestError('member type must be "device"');
         }
         const id = (raw.id ?? '').trim();
         if (!id) continue;
-        const key = `${raw.type}:${id}`;
+        const key = id;
         if (seen.has(key)) continue;
         seen.add(key);
         out.push({ type: raw.type, id, comment: (raw.comment ?? '').trim() });
     }
     return out;
+}
+
+function onlyDeviceMembers(input: IRolloutMember[] | null | undefined): IRolloutMember[] {
+    if (!Array.isArray(input)) return [];
+    return input.filter((member): member is IRolloutMember => (member as { type?: string }).type === 'device');
 }
 
 function normalizeBundleId(value: string | null | undefined): string | null {

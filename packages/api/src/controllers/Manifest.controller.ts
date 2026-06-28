@@ -30,7 +30,6 @@ interface ParsedRequest {
     channelId: string;
     currentUpdateId: string | null;
     deviceId: string | null;
-    userId: string | null;
     accept: string;
 }
 
@@ -119,8 +118,6 @@ export class ManifestController {
 
         const deviceIdHeader = headers['mus-device-id'];
         const deviceId = typeof deviceIdHeader === 'string' && deviceIdHeader ? deviceIdHeader : null;
-        const userIdHeader = headers['mus-user-id'];
-        const userId = typeof userIdHeader === 'string' && userIdHeader ? userIdHeader : null;
 
         return {
             protocolVersion,
@@ -129,7 +126,6 @@ export class ManifestController {
             channelId: channelIdRaw.toLowerCase(),
             currentUpdateId,
             deviceId,
-            userId,
             accept
         };
     }
@@ -139,9 +135,9 @@ export class ManifestController {
         // canary → staging ∪ canary, released → everyone. We pick the freshest update
         // whose tier the request is eligible for, so a canary-only device still gets
         // the latest canary build even when a newer staging build exists. A request
-        // matches a tier if its device id or user id appears under that tier.
-        const inStaging = this.matchesAny(channel.stagingMembers ?? [], parsed.deviceId, parsed.userId);
-        const inCanary = this.matchesAny(channel.canaryMembers, parsed.deviceId, parsed.userId);
+        // matches a tier if its device id appears under that tier.
+        const inStaging = this.matchesAny(channel.stagingMembers ?? [], parsed.deviceId);
+        const inCanary = this.matchesAny(channel.canaryMembers, parsed.deviceId);
 
         const filters: Array<{ statuses: UpdateStatus[]; eligible: boolean }> = [
             { statuses: ['staging', 'canary', 'released'], eligible: inStaging },
@@ -167,11 +163,10 @@ export class ManifestController {
         return null;
     }
 
-    private matchesAny(members: IRolloutMember[], deviceId: string | null, userId: string | null): boolean {
-        if (!deviceId && !userId) return false;
+    private matchesAny(members: IRolloutMember[], deviceId: string | null): boolean {
+        if (!deviceId) return false;
         for (const m of members) {
             if (m.type === 'device' && deviceId && m.id === deviceId) return true;
-            if (m.type === 'user' && userId && m.id === userId) return true;
         }
         return false;
     }

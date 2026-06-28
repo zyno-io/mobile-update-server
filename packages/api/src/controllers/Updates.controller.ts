@@ -573,7 +573,7 @@ export class UpdatesController {
     }
 
     private hasMembers(members: { type: string; id: string }[] | null | undefined): boolean {
-        return Array.isArray(members) && members.length > 0;
+        return Array.isArray(members) && members.some(member => member.type === 'device');
     }
 
     private formatBytes(bytes: number): string {

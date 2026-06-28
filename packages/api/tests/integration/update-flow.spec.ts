@@ -307,6 +307,43 @@ describe('update flow (draft → upload → finalize → promote → cancel)', (
         }
     });
 
+    test('finalize treats legacy user-only cohorts as empty', async () => {
+        const channel = await ChannelEntity.query().filter({ id: CHANNEL_ID }).findOne();
+        const stagingBackup = channel.stagingMembers;
+        const canaryBackup = channel.canaryMembers;
+        channel.stagingMembers = [{ type: 'user' as never, id: 'legacy-staging-user', comment: '' }];
+        channel.canaryMembers = [{ type: 'user' as never, id: 'legacy-canary-user', comment: '' }];
+        await channel.save();
+        try {
+            const updateId = await createDraftUpdate(facade);
+            await facade.request(
+                uploadAsset(updateId, {
+                    key: 'bundles/ios-legacy-user-cohorts.hbc',
+                    platform: 'ios',
+                    isLaunchAsset: true,
+                    content: Buffer.from('legacy user cohort bundle'),
+                    ext: 'hbc',
+                    type: 'application/javascript'
+                })
+            );
+
+            const finalizeResp = await facade.request(
+                HttpRequest.POST(`/api/apps/${APP_ID}/channels/${CHANNEL_ID}/updates/${updateId}/finalize`).header(
+                    'authorization',
+                    `Bearer ${TEST_CI_TOKEN}`
+                )
+            );
+            assert.strictEqual(finalizeResp.statusCode, 200);
+
+            const update = await UpdateEntity.query().filter({ id: updateId }).findOne();
+            assert.strictEqual(update.status, 'released');
+        } finally {
+            channel.stagingMembers = stagingBackup;
+            channel.canaryMembers = canaryBackup;
+            await channel.save();
+        }
+    });
+
     test('finalize skips an empty staging cohort and lands in canary', async () => {
         const channel = await ChannelEntity.query().filter({ id: CHANNEL_ID }).findOne();
         const stagingBackup = channel.stagingMembers;

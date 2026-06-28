@@ -135,16 +135,12 @@
             <div class="modal-form">
                 <h2>{{ memberEditorTier === 'staging' ? 'Staging' : 'Canary' }} cohort</h2>
                 <p class="hint">
-                    Requests are matched by either device ID (<code>mus-device-id</code>) or user ID (<code>mus-user-id</code>). The
-                    {{ memberEditorTier }} cohort receives every update at the {{ memberEditorTier }} tier and above.
+                    Requests are matched by device ID (<code>mus-device-id</code>). The {{ memberEditorTier }} cohort receives every update at the
+                    {{ memberEditorTier }} tier and above.
                 </p>
                 <div class="member-list">
                     <div v-for="(m, i) in memberEditorRows" :key="i" class="member-row">
-                        <select v-model="m.type">
-                            <option value="device">device</option>
-                            <option value="user">user</option>
-                        </select>
-                        <input v-model="m.id" type="text" placeholder="id" />
+                        <input v-model="m.id" type="text" placeholder="device id" />
                         <input v-model="m.comment" type="text" placeholder="comment (optional)" />
                         <button type="button" class="icon-btn" @click="memberEditorRows.splice(i, 1)" title="Remove">
                             <i class="fa fa-trash" />
@@ -153,7 +149,7 @@
                     <div v-if="!memberEditorRows.length" class="empty">No members yet.</div>
                 </div>
                 <button type="button" class="add-row" @click="memberEditorRows.push({ type: 'device', id: '', comment: '' })">
-                    <i class="fa fa-plus" /> Add member
+                    <i class="fa fa-plus" /> Add device
                 </button>
                 <div class="actions">
                     <button type="button" @click="memberEditorTier = null">Cancel</button>
@@ -436,7 +432,9 @@ async function saveMembers() {
     if (!app.value || !channel.value || !memberEditorTier.value) return;
     try {
         savingMembers.value = true;
-        const members = memberEditorRows.value.map(m => ({ type: m.type, id: m.id.trim(), comment: (m.comment ?? '').trim() })).filter(m => m.id);
+        const members = memberEditorRows.value
+            .map(m => ({ type: 'device' as const, id: m.id.trim(), comment: (m.comment ?? '').trim() }))
+            .filter(m => m.id);
         const path = { appId: app.value.id, id: channel.value.id };
         if (memberEditorTier.value === 'staging') {
             await dataFromAsync(ChannelsApi.putChannelsUpdateStagingMembers({ path, body: { stagingMembers: members } }));

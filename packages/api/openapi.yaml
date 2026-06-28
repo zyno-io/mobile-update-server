@@ -1589,7 +1589,6 @@ components:
       type: string
       enum:
         - device
-        - user
     IRolloutMember:
       type: object
       properties:

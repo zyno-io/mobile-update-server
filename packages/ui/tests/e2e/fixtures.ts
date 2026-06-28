@@ -108,7 +108,7 @@ export const channels: IChannelResponse[] = [
         stagingMembers: [{ type: 'device', id: 'device-aaa', comment: 'lead' }],
         canaryMembers: [
             { type: 'device', id: 'device-bbb', comment: '' },
-            { type: 'user', id: 'user-42', comment: 'beta tester' }
+            { type: 'device', id: 'device-ccc', comment: 'beta tester' }
         ]
     },
     {
