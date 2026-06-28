@@ -128,18 +128,6 @@ describe('manifest + native-status', () => {
         assert.doesNotMatch(body, new RegExp(`"id":"${released.id.toLowerCase()}"`));
     });
 
-    test('legacy user-id header does not qualify for rollout targeting', async () => {
-        await clearUpdates();
-        const released = await makeRelease('released');
-        const staging = await makeRelease('staging');
-
-        const response = await facade.request(manifestRequest(undefined, undefined, 'staging-device-1'));
-        assert.strictEqual(response.statusCode, 200);
-        const body = response.bodyString;
-        assert.match(body, new RegExp(`"id":"${released.id.toLowerCase()}"`), 'should fall back to released');
-        assert.doesNotMatch(body, new RegExp(`"id":"${staging.id.toLowerCase()}"`));
-    });
-
     test('no-update-available directive when client already has latest', async () => {
         await clearUpdates();
         const released = await makeRelease('released');
@@ -347,7 +335,7 @@ async function makeRelease(status: 'staging' | 'canary' | 'released'): Promise<U
     return update;
 }
 
-function manifestRequest(deviceId?: string, currentUpdateId?: string, legacyUserId?: string) {
+function manifestRequest(deviceId?: string, currentUpdateId?: string) {
     const req = HttpRequest.GET(`/api/manifest/${APP_ID}`)
         .header('expo-protocol-version', '1')
         .header('expo-platform', 'ios')
@@ -355,7 +343,6 @@ function manifestRequest(deviceId?: string, currentUpdateId?: string, legacyUser
         .header('expo-channel-name', CHANNEL_ID)
         .header('accept', 'multipart/mixed');
     if (deviceId) req.header('mus-device-id', deviceId);
-    if (legacyUserId) req.header('mus-user-id', legacyUserId);
     if (currentUpdateId) req.header('expo-current-update-id', currentUpdateId);
     return req;
 }

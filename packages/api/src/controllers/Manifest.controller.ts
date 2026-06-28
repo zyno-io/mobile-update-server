@@ -166,7 +166,7 @@ export class ManifestController {
     private matchesAny(members: IRolloutMember[], deviceId: string | null): boolean {
         if (!deviceId) return false;
         for (const m of members) {
-            if (m.type === 'device' && deviceId && m.id === deviceId) return true;
+            if (m.type === 'device' && m.id === deviceId) return true;
         }
         return false;
     }
