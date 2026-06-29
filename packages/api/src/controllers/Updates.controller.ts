@@ -46,8 +46,13 @@ interface IUpdateCreateInput {
     runtimeVersion: string;
     otaVersion?: string | null;
     platform: TargetPlatform;
-    expoConfig: Record<string, unknown>;
-    metadata: Record<string, unknown>;
+    // Arbitrary Expo JSON. Deepkit treats Record<string, unknown> as an object
+    // with no declared properties and strips nested config keys during request
+    // body deserialization.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expoConfig: { [key: string]: any };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    metadata: { [key: string]: any };
 }
 
 interface IUpdateAssetUploadInput {

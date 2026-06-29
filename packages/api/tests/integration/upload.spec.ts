@@ -42,6 +42,10 @@ describe('upload (CI token enforcement)', () => {
         assert.strictEqual(response.statusCode, 200);
         const body = response.json as { id: string; status: string };
         assert.strictEqual(body.status, 'draft');
+
+        const stored = await UpdateEntity.query().filter({ id: body.id }).findOneOrUndefined();
+        assert.deepStrictEqual(stored?.expoConfigJson, { name: 'Test' });
+        assert.deepStrictEqual(stored?.metadataJson, { version: 0 });
     });
 
     test('create update with unknown CI token → 401', async () => {
