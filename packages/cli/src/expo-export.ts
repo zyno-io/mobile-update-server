@@ -75,11 +75,32 @@ export async function readExpoExport(
     }
 
     const assets: ICollectedAsset[] = [];
+    const seenAssets = new Map<string, ICollectedAsset>();
+    const addAsset = (asset: ICollectedAsset): void => {
+        const dedupeKey = `${asset.platform}/${asset.key}`;
+        const existing = seenAssets.get(dedupeKey);
+        if (!existing) {
+            seenAssets.set(dedupeKey, asset);
+            assets.push(asset);
+            return;
+        }
+
+        if (
+            existing.absolutePath === asset.absolutePath &&
+            existing.fileExtension === asset.fileExtension &&
+            existing.isLaunchAsset === asset.isLaunchAsset
+        ) {
+            return;
+        }
+
+        throw new AppError(`Expo export contains conflicting duplicate asset ${dedupeKey}.`);
+    };
+
     for (const platform of [selectedPlatform] as const) {
         const fm = metadata.fileMetadata[platform];
         if (!fm) continue;
 
-        assets.push({
+        addAsset({
             absolutePath: join(distDir, fm.bundle),
             key: relative(distDir, join(distDir, fm.bundle)).replace(/\\/g, '/'),
             fileExtension: extname(fm.bundle).replace(/^\./, '') || 'bundle',
@@ -88,7 +109,7 @@ export async function readExpoExport(
         });
 
         for (const asset of fm.assets) {
-            assets.push({
+            addAsset({
                 absolutePath: join(distDir, asset.path),
                 key: asset.path.replace(/\\/g, '/'),
                 fileExtension: asset.ext,
