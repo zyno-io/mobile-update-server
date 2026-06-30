@@ -47,15 +47,9 @@ export async function readExpoExport(
     try {
         expoConfig = JSON.parse(await readFile(expoConfigPath, 'utf-8'));
     } catch {
-        // expoConfig.json is not always emitted; fall back to app.json's expo field
-        try {
-            const appJson = JSON.parse(await readFile(join(distDir, '..', 'app.json'), 'utf-8'));
-            expoConfig = appJson.expo ?? appJson;
-        } catch {
-            if (!runtimeVersionOverride) {
-                throw new AppError('Could not find expoConfig.json in dist or app.json next to it. Pass --runtime-version to override.');
-            }
-        }
+        throw new AppError(
+            `Expo export is missing ${expoConfigPath}. Write the resolved Expo config into the export directory before publishing.`
+        );
     }
 
     const runtimeVersion = runtimeVersionOverride ?? expoConfig.runtimeVersion;
@@ -63,6 +57,9 @@ export async function readExpoExport(
         throw new AppError(
             'Could not determine runtimeVersion. Expo should resolve `expo.runtimeVersion` to a string at export time; if your config uses a policy object (e.g. { policy: "appVersion" }), pass --runtime-version=<value> explicitly.'
         );
+    }
+    if (runtimeVersionOverride) {
+        expoConfig = { ...expoConfig, runtimeVersion };
     }
 
     const availablePlatforms = (['ios', 'android'] as const).filter(platform => metadata.fileMetadata[platform]);

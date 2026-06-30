@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -38,9 +38,28 @@ test('readExpoExport rejects duplicate asset keys with conflicting metadata', as
     }
 });
 
+test('readExpoExport requires expoConfig.json', async () => {
+    const distDir = await mkdtemp(join(tmpdir(), 'mus-expo-export-'));
+    await writeExpoMetadata(distDir, [{ path: 'assets/shared', ext: 'png' }]);
+
+    try {
+        await assert.rejects(() => readExpoExport(distDir, '3.0.0', 'ios'), /missing .*expoConfig\.json/);
+    } finally {
+        await rm(distDir, { recursive: true, force: true });
+    }
+});
+
 async function writeExpoExport(assets: { path: string; ext: string }[]): Promise<string> {
     const distDir = await mkdtemp(join(tmpdir(), 'mus-expo-export-'));
 
+    await writeExpoMetadata(distDir, assets);
+    await writeFile(join(distDir, 'expoConfig.json'), JSON.stringify({ runtimeVersion: '1.0.0' }));
+
+    return distDir;
+}
+
+async function writeExpoMetadata(distDir: string, assets: { path: string; ext: string }[]): Promise<void> {
+    await mkdir(distDir, { recursive: true });
     await writeFile(
         join(distDir, 'metadata.json'),
         JSON.stringify({
@@ -54,7 +73,4 @@ async function writeExpoExport(assets: { path: string; ext: string }[]): Promise
             }
         })
     );
-    await writeFile(join(distDir, 'expoConfig.json'), JSON.stringify({ runtimeVersion: '1.0.0' }));
-
-    return distDir;
 }
