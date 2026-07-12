@@ -58,25 +58,14 @@ export class StoreLookupService {
             credentials: credentials as never,
             scopes: ['https://www.googleapis.com/auth/androidpublisher']
         });
-        const publisher = google.androidpublisher({ version: 'v3', auth });
 
-        let editId: string | undefined;
         try {
-            const edit = await publisher.edits.insert({ packageName });
-            editId = edit.data.id ?? undefined;
-            if (!editId) {
-                this.logger.warn(`Google Play edits.insert returned no id for ${packageName}`);
-                return null;
-            }
-
-            const track = await publisher.edits.tracks.get({
-                packageName,
-                editId,
-                track: 'production'
+            const response = await auth.request<IGoogleReleaseSummariesResponse>({
+                method: 'GET',
+                url: `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/tracks/production/releases`
             });
 
-            const releases = track.data.releases ?? [];
-            const versionName = pickProductionVersionName(releases);
+            const versionName = pickPublishedVersionName(response.data.releases ?? []);
             if (!versionName) return null;
 
             return {
@@ -88,36 +77,37 @@ export class StoreLookupService {
             if (status === 404) return null;
             this.logger.warn(`Google Play lookup for ${packageName} failed: ${(err as Error).message}`);
             return null;
-        } finally {
-            if (editId) {
-                try {
-                    await publisher.edits.delete({ packageName, editId });
-                } catch {
-                    // Edits expire on their own; not worth surfacing.
-                }
-            }
         }
     }
 }
 
-interface IGoogleRelease {
-    name?: string | null;
-    status?: string | null;
-    versionCodes?: string[] | null;
+interface IGoogleReleaseSummariesResponse {
+    releases?: IGoogleReleaseSummary[] | null;
 }
 
-function pickProductionVersionName(releases: IGoogleRelease[]): string | undefined {
-    const completed = releases.filter(r => r.status === 'completed' && r.versionCodes?.length);
-    const pool = completed.length ? completed : releases.filter(r => r.versionCodes?.length);
-    if (!pool.length) return undefined;
+interface IGoogleReleaseSummary {
+    releaseName?: string | null;
+    releaseLifecycleState?: string | null;
+    activeArtifacts?: Array<{ versionCode?: number | string | null }> | null;
+}
 
-    let best: { release: IGoogleRelease; versionCode: number } | undefined;
-    for (const release of pool) {
-        for (const code of release.versionCodes ?? []) {
-            const n = Number(code);
+function pickPublishedVersionName(releases: IGoogleReleaseSummary[]): string | undefined {
+    let best: { release: IGoogleReleaseSummary; versionCode: number } | undefined;
+    for (const release of releases) {
+        if (release.releaseLifecycleState !== 'RELEASE_LIFECYCLE_STATE_PUBLISHED') continue;
+        for (const artifact of release.activeArtifacts ?? []) {
+            const n = Number(artifact.versionCode);
             if (!Number.isFinite(n)) continue;
             if (!best || n > best.versionCode) best = { release, versionCode: n };
         }
     }
-    return best?.release.name?.trim() || undefined;
+    return normalizeGooglePlayReleaseName(best?.release.releaseName);
+}
+
+function normalizeGooglePlayReleaseName(releaseName: string | null | undefined): string | undefined {
+    const trimmed = releaseName?.trim();
+    if (!trimmed) return undefined;
+
+    const generatedName = trimmed.match(/^\d+\s+\(([^()]+)\)$/);
+    return generatedName?.[1].trim() || trimmed;
 }

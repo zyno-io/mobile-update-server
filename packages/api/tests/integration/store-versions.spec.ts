@@ -2,6 +2,7 @@ import '../shared/setup';
 import { HttpRequest } from '@deepkit/http';
 import { uuid } from '@deepkit/type';
 import { createPersistedEntity, JWT, TestingHelpers } from '@zyno-io/dk-server-foundation';
+import { google } from 'googleapis';
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 
@@ -18,6 +19,66 @@ import { mockGitLabState, startMockGitLab, TEST_VCS_PROJECT_ID, ZERO_ID } from '
 const APP_ID = '21212121-2121-2121-2121-212121212121';
 const CHANNEL_TRACKED = '22222222-2222-2222-2222-222222222222';
 const CHANNEL_DISABLED = '23232323-2323-2323-2323-232323232323';
+
+describe('Google Play store lookup', () => {
+    test('ignores an in-review production release in favor of the published release', async t => {
+        const request = t.mock.method(google.auth.GoogleAuth.prototype, 'request', async () => ({
+            data: {
+                releases: [
+                    {
+                        releaseName: '314284018 (26.712.549)',
+                        releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_IN_REVIEW',
+                        activeArtifacts: [{ versionCode: 314284018 }]
+                    },
+                    {
+                        releaseName: '26.513.1640',
+                        releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+                        activeArtifacts: [{ versionCode: 313769520 }]
+                    }
+                ]
+            }
+        }));
+        const lookup = createGooglePlayLookup();
+
+        const result = await lookup.lookupGooglePlay('app.zyno.talk');
+
+        assert.deepStrictEqual(result, {
+            version: '26.513.1640',
+            storeUrl: 'https://play.google.com/store/apps/details?id=app.zyno.talk'
+        });
+        assert.strictEqual(request.mock.callCount(), 1);
+        assert.strictEqual(
+            (request.mock.calls[0].arguments[0] as { url: string }).url,
+            'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/app.zyno.talk/tracks/production/releases'
+        );
+    });
+
+    test('removes the version-code prefix from a generated published release name', async t => {
+        t.mock.method(google.auth.GoogleAuth.prototype, 'request', async () => ({
+            data: {
+                releases: [
+                    {
+                        releaseName: '314284018 (26.712.549)',
+                        releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+                        activeArtifacts: [{ versionCode: 314284018 }]
+                    }
+                ]
+            }
+        }));
+        const lookup = createGooglePlayLookup();
+
+        const result = await lookup.lookupGooglePlay('app.zyno.talk');
+
+        assert.strictEqual(result?.version, '26.712.549');
+    });
+});
+
+function createGooglePlayLookup(): StoreLookupService {
+    return new StoreLookupService(
+        { GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: '{}' } as never,
+        { warn: () => {}, error: () => {} } as never
+    );
+}
 
 class StubLookup {
     appleVersion: string | null = '1.0.0';

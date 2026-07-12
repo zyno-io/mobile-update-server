@@ -5,8 +5,7 @@ dist/
 .yarn/build-state.yml
 .yarn/unplugged/
 .pnp.*
-.env
-.env.local
+.env*.local
 *.log
 .DS_Store
 packages/api/static/
