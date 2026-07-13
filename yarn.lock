@@ -2538,7 +2538,6 @@ __metadata:
     "@types/mime-types": "npm:^3.0.1"
     "@types/node": "npm:^26.1.1"
     mime-types: "npm:^3.0.2"
-    ttsc: "npm:0.18.4"
     typescript: "npm:7.0.2"
   bin:
     mobile-update: ./dist/index.js

@@ -39,7 +39,7 @@ prepare build:
 
 .test-services:
   extends: .test-base
-  image: mcr.microsoft.com/playwright:v1.59.1-jammy
+  image: mcr.microsoft.com/playwright:v1.61.1-jammy
   services:
     - name: mysql:8
       variables:
@@ -113,7 +113,6 @@ visual regression test:
 
 .build-base:
   stage: build
-  dependencies: []
   image: ghcr.io/zyno-io/container-tooling:latest
   before_script:
     - |
