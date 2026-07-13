@@ -101,8 +101,10 @@ export const channels: IChannelResponse[] = [
         androidPackageName: 'com.acme.mobile',
         iosTrackingEnabled: true,
         androidTrackingEnabled: true,
-        iosNativeUpdateRequiredAt: null,
-        androidNativeUpdateRequiredAt: null,
+        iosNativeUpdateMode: 'after-days',
+        androidNativeUpdateMode: 'none',
+        iosNativeUpdateAfterDays: 14,
+        androidNativeUpdateAfterDays: null,
         iosStoreUrl: null,
         androidStoreUrl: null,
         stagingMembers: [{ type: 'device', id: 'device-aaa', comment: 'lead' }],
@@ -120,8 +122,10 @@ export const channels: IChannelResponse[] = [
         androidPackageName: 'com.acme.mobile.staging',
         iosTrackingEnabled: false,
         androidTrackingEnabled: false,
-        iosNativeUpdateRequiredAt: null,
-        androidNativeUpdateRequiredAt: null,
+        iosNativeUpdateMode: 'none',
+        androidNativeUpdateMode: 'none',
+        iosNativeUpdateAfterDays: null,
+        androidNativeUpdateAfterDays: null,
         iosStoreUrl: null,
         androidStoreUrl: null,
         stagingMembers: [],
@@ -394,12 +398,14 @@ export const latestStoreVersions: Record<'ios' | 'android', IStoreVersionRespons
     ios: {
         platform: 'ios',
         version: '1.4.0',
-        firstDetectedAt: '2026-03-27T14:22:00.000Z'
+        firstDetectedAt: '2026-03-15T14:22:00.000Z',
+        nativeUpdateRequiredAt: '2026-03-29T14:22:00.000Z'
     },
     android: {
         platform: 'android',
         version: '1.4.0',
-        firstDetectedAt: '2026-03-28T09:11:00.000Z'
+        firstDetectedAt: '2026-03-28T09:11:00.000Z',
+        nativeUpdateRequiredAt: null
     }
 };
 

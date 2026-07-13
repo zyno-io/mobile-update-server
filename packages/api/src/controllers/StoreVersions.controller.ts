@@ -10,7 +10,7 @@ import { StoreVersionEntity } from '../entities/StoreVersion.entity';
 import { TargetPlatform } from '../entities/UpdateAsset.entity';
 import { UserEntity } from '../entities/User.entity';
 
-export type IStoreVersionResponse = Pick<StoreVersionEntity, 'platform' | 'version' | 'firstDetectedAt'>;
+export type IStoreVersionResponse = Pick<StoreVersionEntity, 'platform' | 'version' | 'firstDetectedAt' | 'nativeUpdateRequiredAt'>;
 
 @ApiController('/api/apps/:appId/channels/:channelId/store-versions')
 @http.middleware(UserAuthMiddleware)
@@ -34,10 +34,24 @@ export class StoreVersionsController {
 
         await this.projectAuth.requireRole(user, app.vcsId, app.vcsProjectId, 'read');
 
-        const row = await StoreVersionEntity.query().filter({ channelId, platform }).orderBy('firstDetectedAt', 'desc').findOneOrUndefined();
+        const storeIdentifier = platform === 'ios' ? channel.iosBundleId : channel.androidPackageName;
+        const trackingEnabled = platform === 'ios' ? channel.iosTrackingEnabled : channel.androidTrackingEnabled;
+        if (!trackingEnabled || !storeIdentifier) return { latest: null };
+
+        const row = await StoreVersionEntity.query()
+            .filter({ channelId, platform, storeIdentifier })
+            .sort({ firstDetectedAt: 'desc', id: 'desc' })
+            .findOneOrUndefined();
 
         return {
-            latest: row ? { platform: row.platform, version: row.version, firstDetectedAt: row.firstDetectedAt } : null
+            latest: row
+                ? {
+                      platform: row.platform,
+                      version: row.version,
+                      firstDetectedAt: row.firstDetectedAt,
+                      nativeUpdateRequiredAt: row.nativeUpdateRequiredAt
+                  }
+                : null
         };
     }
 }

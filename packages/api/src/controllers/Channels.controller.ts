@@ -1,17 +1,21 @@
+import type { Maximum } from '@zyno-io/ts-server-foundation';
+
 import { http, HttpBadRequestError, HttpBody, HttpNotFoundError } from '@zyno-io/ts-server-foundation';
 import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 import { uuid } from '@zyno-io/ts-server-foundation';
-import { createEntity, createPersistedEntity, uuid7 } from '@zyno-io/ts-server-foundation';
+import { createEntity } from '@zyno-io/ts-server-foundation';
 
 import { UserAuthMiddleware } from '../accessories/AuthMiddleware.accessory';
 import { ApiController } from '../accessories/Controller.accessory';
 import { GitLabProjectAuthService } from '../accessories/GitLabProjectAuth.accessory';
 import { AppEntity } from '../entities/App.entity';
-import { ChannelEntity, IRolloutMember, RolloutMemberType } from '../entities/Channel.entity';
-import { StoreVersionEntity } from '../entities/StoreVersion.entity';
+import { ChannelEntity, IRolloutMember, NativeUpdateAfterDays, NativeUpdateMode, RolloutMemberType } from '../entities/Channel.entity';
 import { TargetPlatform } from '../entities/UpdateAsset.entity';
 import { UserEntity } from '../entities/User.entity';
 import { IStoreVersionLookupResult, StoreLookupService } from '../services/StoreLookup.service';
+import { recalculateLatestStoreVersionDeadline, recordDetectedStoreVersion } from '../services/StoreVersion.service';
+
+type NativeUpdateAfterDaysInput = NativeUpdateAfterDays & Maximum<36_500>;
 
 export type IChannelResponse = Pick<
     ChannelEntity,
@@ -23,8 +27,10 @@ export type IChannelResponse = Pick<
     | 'androidPackageName'
     | 'iosTrackingEnabled'
     | 'androidTrackingEnabled'
-    | 'iosNativeUpdateRequiredAt'
-    | 'androidNativeUpdateRequiredAt'
+    | 'iosNativeUpdateMode'
+    | 'androidNativeUpdateMode'
+    | 'iosNativeUpdateAfterDays'
+    | 'androidNativeUpdateAfterDays'
     | 'iosStoreUrl'
     | 'androidStoreUrl'
     | 'stagingMembers'
@@ -38,8 +44,10 @@ interface IChannelCreateInput {
     androidPackageName?: string | null;
     iosTrackingEnabled?: boolean;
     androidTrackingEnabled?: boolean;
-    iosNativeUpdateRequiredAt?: Date | string | null;
-    androidNativeUpdateRequiredAt?: Date | string | null;
+    iosNativeUpdateMode?: NativeUpdateMode;
+    androidNativeUpdateMode?: NativeUpdateMode;
+    iosNativeUpdateAfterDays?: NativeUpdateAfterDaysInput | null;
+    androidNativeUpdateAfterDays?: NativeUpdateAfterDaysInput | null;
 }
 
 interface IChannelUpdateInput {
@@ -49,8 +57,10 @@ interface IChannelUpdateInput {
     androidPackageName?: string | null;
     iosTrackingEnabled?: boolean;
     androidTrackingEnabled?: boolean;
-    iosNativeUpdateRequiredAt?: Date | string | null;
-    androidNativeUpdateRequiredAt?: Date | string | null;
+    iosNativeUpdateMode?: NativeUpdateMode;
+    androidNativeUpdateMode?: NativeUpdateMode;
+    iosNativeUpdateAfterDays?: NativeUpdateAfterDaysInput | null;
+    androidNativeUpdateAfterDays?: NativeUpdateAfterDaysInput | null;
 }
 
 interface IRolloutMemberInput {
@@ -92,8 +102,10 @@ export class ChannelsController {
             androidPackageName: channel.androidPackageName,
             iosTrackingEnabled: channel.iosTrackingEnabled,
             androidTrackingEnabled: channel.androidTrackingEnabled,
-            iosNativeUpdateRequiredAt: channel.iosNativeUpdateRequiredAt,
-            androidNativeUpdateRequiredAt: channel.androidNativeUpdateRequiredAt,
+            iosNativeUpdateMode: channel.iosNativeUpdateMode,
+            androidNativeUpdateMode: channel.androidNativeUpdateMode,
+            iosNativeUpdateAfterDays: channel.iosNativeUpdateAfterDays,
+            androidNativeUpdateAfterDays: channel.androidNativeUpdateAfterDays,
             iosStoreUrl: channel.iosStoreUrl,
             androidStoreUrl: channel.androidStoreUrl,
             stagingMembers: onlyDeviceMembers(channel.stagingMembers),
@@ -137,6 +149,8 @@ export class ChannelsController {
         const existingBranch = await ChannelEntity.query().filter({ appId, branchName, deletedAt: null }).findOneOrUndefined();
         if (existingBranch) throw new HttpBadRequestError('Channel with this branch already exists');
 
+        const iosNativeUpdatePolicy = normalizeNativeUpdatePolicy(body.iosNativeUpdateMode ?? 'none', body.iosNativeUpdateAfterDays);
+        const androidNativeUpdatePolicy = normalizeNativeUpdatePolicy(body.androidNativeUpdateMode ?? 'none', body.androidNativeUpdateAfterDays);
         const channel = createEntity(ChannelEntity, {
             id: uuid(),
             appId,
@@ -146,8 +160,10 @@ export class ChannelsController {
             androidPackageName: normalizeBundleId(body.androidPackageName),
             iosTrackingEnabled: !!body.iosTrackingEnabled,
             androidTrackingEnabled: !!body.androidTrackingEnabled,
-            iosNativeUpdateRequiredAt: parseDate(body.iosNativeUpdateRequiredAt),
-            androidNativeUpdateRequiredAt: parseDate(body.androidNativeUpdateRequiredAt),
+            iosNativeUpdateMode: iosNativeUpdatePolicy.mode,
+            androidNativeUpdateMode: androidNativeUpdatePolicy.mode,
+            iosNativeUpdateAfterDays: iosNativeUpdatePolicy.afterDays,
+            androidNativeUpdateAfterDays: androidNativeUpdatePolicy.afterDays,
             iosStoreUrl: null,
             androidStoreUrl: null,
             stagingMembers: [],
@@ -192,12 +208,18 @@ export class ChannelsController {
         }
         if (body.iosBundleId !== undefined) {
             const next = normalizeBundleId(body.iosBundleId);
-            if (next !== channel.iosBundleId) channel.iosStoreUrl = null;
+            if (next !== channel.iosBundleId) {
+                channel.iosStoreUrl = null;
+                channel.iosNativeUpdateRequiredAt = null;
+            }
             channel.iosBundleId = next;
         }
         if (body.androidPackageName !== undefined) {
             const next = normalizeBundleId(body.androidPackageName);
-            if (next !== channel.androidPackageName) channel.androidStoreUrl = null;
+            if (next !== channel.androidPackageName) {
+                channel.androidStoreUrl = null;
+                channel.androidNativeUpdateRequiredAt = null;
+            }
             channel.androidPackageName = next;
         }
         if (body.iosTrackingEnabled !== undefined) {
@@ -208,11 +230,13 @@ export class ChannelsController {
             channel.androidTrackingEnabled = !!body.androidTrackingEnabled;
             if (!channel.androidTrackingEnabled) channel.androidStoreUrl = null;
         }
-        if (body.iosNativeUpdateRequiredAt !== undefined) channel.iosNativeUpdateRequiredAt = parseDate(body.iosNativeUpdateRequiredAt);
-        if (body.androidNativeUpdateRequiredAt !== undefined) channel.androidNativeUpdateRequiredAt = parseDate(body.androidNativeUpdateRequiredAt);
+        const iosPolicyChanged = updateNativeUpdatePolicy(channel, 'ios', body.iosNativeUpdateMode, body.iosNativeUpdateAfterDays);
+        const androidPolicyChanged = updateNativeUpdatePolicy(channel, 'android', body.androidNativeUpdateMode, body.androidNativeUpdateAfterDays);
         await channel.save();
 
         await this.refreshStoreVersions(channel);
+        if (iosPolicyChanged) await recalculateLatestStoreVersionDeadline(channel, 'ios');
+        if (androidPolicyChanged) await recalculateLatestStoreVersionDeadline(channel, 'android');
 
         return this.toResponse(channel);
     }
@@ -260,10 +284,12 @@ export class ChannelsController {
     private async refreshStoreVersions(channel: ChannelEntity): Promise<void> {
         const tasks: Array<Promise<void>> = [];
         if (channel.iosTrackingEnabled && channel.iosBundleId) {
-            tasks.push(this.recordStoreVersion(channel, 'ios', () => this.storeLookup.lookupApple(channel.iosBundleId!)));
+            const storeIdentifier = channel.iosBundleId;
+            tasks.push(this.recordStoreVersion(channel, 'ios', storeIdentifier, () => this.storeLookup.lookupApple(storeIdentifier)));
         }
         if (channel.androidTrackingEnabled && channel.androidPackageName) {
-            tasks.push(this.recordStoreVersion(channel, 'android', () => this.storeLookup.lookupGooglePlay(channel.androidPackageName!)));
+            const storeIdentifier = channel.androidPackageName;
+            tasks.push(this.recordStoreVersion(channel, 'android', storeIdentifier, () => this.storeLookup.lookupGooglePlay(storeIdentifier)));
         }
         await Promise.all(tasks);
     }
@@ -271,6 +297,7 @@ export class ChannelsController {
     private async recordStoreVersion(
         channel: ChannelEntity,
         platform: TargetPlatform,
+        storeIdentifier: string,
         fetcher: () => Promise<IStoreVersionLookupResult | null>
     ): Promise<void> {
         let result: IStoreVersionLookupResult | null;
@@ -282,26 +309,7 @@ export class ChannelsController {
         }
         if (!result) return;
 
-        const field = platform === 'ios' ? 'iosStoreUrl' : 'androidStoreUrl';
-        if (channel[field] !== result.storeUrl) {
-            channel[field] = result.storeUrl;
-            await channel.save();
-        }
-
-        const latest = await StoreVersionEntity.query()
-            .filter({ channelId: channel.id, platform })
-            .orderBy('firstDetectedAt', 'desc')
-            .findOneOrUndefined();
-        if (latest && latest.version === result.version) return;
-
-        await createPersistedEntity(StoreVersionEntity, {
-            id: uuid7(),
-            appId: channel.appId,
-            channelId: channel.id,
-            platform,
-            version: result.version,
-            firstDetectedAt: new Date()
-        });
+        await recordDetectedStoreVersion(channel, platform, storeIdentifier, result);
     }
 }
 
@@ -339,12 +347,39 @@ function normalizeBundleId(value: string | null | undefined): string | null {
     return trimmed ? trimmed : null;
 }
 
-function parseDate(value: Date | string | null | undefined): Date | null {
-    if (value === null || value === undefined) return null;
-    if (value instanceof Date) return value;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const parsed = new Date(trimmed);
-    if (Number.isNaN(parsed.getTime())) throw new HttpBadRequestError('Invalid date');
-    return parsed;
+function normalizeNativeUpdatePolicy(
+    mode: NativeUpdateMode,
+    afterDays: NativeUpdateAfterDays | null | undefined
+): { mode: NativeUpdateMode; afterDays: NativeUpdateAfterDays | null } {
+    if (mode !== 'none' && mode !== 'immediate' && mode !== 'after-days') {
+        throw new HttpBadRequestError('Native update mode must be none, immediate, or after-days');
+    }
+    if (mode !== 'after-days') return { mode, afterDays: null };
+    if (afterDays === null || afterDays === undefined || !Number.isSafeInteger(afterDays) || afterDays < 0 || afterDays > 36_500) {
+        throw new HttpBadRequestError('Native update delay must be a non-negative integer no greater than 36500');
+    }
+    return { mode, afterDays };
+}
+
+function updateNativeUpdatePolicy(
+    channel: ChannelEntity,
+    platform: TargetPlatform,
+    modeInput: NativeUpdateMode | undefined,
+    afterDaysInput: NativeUpdateAfterDaysInput | null | undefined
+): boolean {
+    if (modeInput === undefined && afterDaysInput === undefined) return false;
+
+    const currentMode = platform === 'ios' ? channel.iosNativeUpdateMode : channel.androidNativeUpdateMode;
+    const currentAfterDays = platform === 'ios' ? channel.iosNativeUpdateAfterDays : channel.androidNativeUpdateAfterDays;
+    const policy = normalizeNativeUpdatePolicy(modeInput ?? currentMode, afterDaysInput === undefined ? currentAfterDays : afterDaysInput);
+    const changed = currentMode !== policy.mode || currentAfterDays !== policy.afterDays;
+
+    if (platform === 'ios') {
+        channel.iosNativeUpdateMode = policy.mode;
+        channel.iosNativeUpdateAfterDays = policy.afterDays;
+    } else {
+        channel.androidNativeUpdateMode = policy.mode;
+        channel.androidNativeUpdateAfterDays = policy.afterDays;
+    }
+    return changed;
 }

@@ -52,12 +52,16 @@ export class ManifestController {
         const channel = await ChannelEntity.query().filter({ id: channelId, appId: app.id, deletedAt: null }).findOneOrUndefined();
         if (!channel) throw new HttpNotFoundError();
 
-        const requiredAt = query.platform === 'ios' ? channel.iosNativeUpdateRequiredAt : channel.androidNativeUpdateRequiredAt;
-
-        const latestStore = await StoreVersionEntity.query()
-            .filter({ channelId: channel.id, platform: query.platform })
-            .orderBy('firstDetectedAt', 'desc')
-            .findOneOrUndefined();
+        const storeIdentifier = query.platform === 'ios' ? channel.iosBundleId : channel.androidPackageName;
+        const trackingEnabled = query.platform === 'ios' ? channel.iosTrackingEnabled : channel.androidTrackingEnabled;
+        const latestStore =
+            trackingEnabled && storeIdentifier
+                ? await StoreVersionEntity.query()
+                      .filter({ channelId: channel.id, platform: query.platform, storeIdentifier })
+                      .sort({ firstDetectedAt: 'desc', id: 'desc' })
+                      .findOneOrUndefined()
+                : undefined;
+        const requiredAt = latestStore?.nativeUpdateRequiredAt ?? null;
 
         return {
             platform: query.platform,

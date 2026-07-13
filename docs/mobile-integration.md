@@ -54,8 +54,10 @@ Paste that ID into **Edit canary devices** in the UI for the channel. On the nex
 
 Channel settings in the UI let you mark a native update as required, either:
 
-- **Immediate** — `nativeUpdateRequiredAt` is set to "now"; clients should treat this as required on next launch.
-- **N days after a new store version is detected** — the saved date is `firstDetectedAt + N days` against whatever was the latest detected store version at save time.
+- **Immediate** — the current store version becomes required now, and future store versions become required as soon as they are detected.
+- **N days after a new store version is detected** — every detected store version gets its own deadline at `firstDetectedAt + N days`.
+
+These are persistent channel policies. A delayed policy remains delayed after its current deadline passes, and a newly detected store version always receives a fresh deadline. Changing the policy or number of days recalculates the deadline for the latest detected store version. If no store version has been detected yet, the policy is retained and activates on the first detection.
 
 The mobile app checks this against a public endpoint:
 
@@ -128,7 +130,8 @@ You can call this on a timer too (e.g. every hour from a foreground task) to cat
 ### Where do the values come from?
 
 - `latestStoreVersion` is detected by the server polling the App Store / Play Store hourly, _or_ as soon as you save channel settings (the save triggers an immediate lookup).
-- `nativeUpdateRequiredAt` is whatever was saved in **Channel settings → Force native update**. The "after N days" form computes the date as `latestStoreVersionDetectedAt + N days` at save time, so the deadline is anchored to when a new store version was first seen, not when the toggle was flipped.
+- Store-version history is scoped to the configured bundle ID or package name. Changing that identifier starts a fresh detection history, even if the new app currently has the same version string.
+- `nativeUpdateRequiredAt` belongs to the latest detected store version. The server calculates it from the persistent **Channel settings → Force native update** policy, so delayed deadlines are always anchored to when that specific store version was first seen.
 
 ## 5. Reading manifest extras
 

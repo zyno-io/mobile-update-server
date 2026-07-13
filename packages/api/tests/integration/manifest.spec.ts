@@ -18,6 +18,7 @@ import { startMockGitLab, ZERO_ID } from '../shared/setup';
 const APP_ID = '11111111-1111-1111-1111-111111111111';
 const CHANNEL_ID = '22222222-2222-2222-2222-222222222222';
 const RUNTIME = '1.0.0';
+const IOS_STORE_IDENTIFIER = 'com.example.manifest';
 
 describe('manifest + native-status', () => {
     let facade: ReturnType<typeof TestingHelpers.createTestingFacade>;
@@ -200,16 +201,20 @@ describe('manifest + native-status', () => {
             appId: APP_ID,
             channelId: CHANNEL_ID,
             platform: 'ios',
+            storeIdentifier: IOS_STORE_IDENTIFIER,
             version: '1.0.0',
-            firstDetectedAt: oldDetected
+            firstDetectedAt: oldDetected,
+            nativeUpdateRequiredAt: null
         });
         await createPersistedEntity(StoreVersionEntity, {
             id: uuid7(),
             appId: APP_ID,
             channelId: CHANNEL_ID,
             platform: 'ios',
+            storeIdentifier: IOS_STORE_IDENTIFIER,
             version: '1.1.0',
-            firstDetectedAt: newDetected
+            firstDetectedAt: newDetected,
+            nativeUpdateRequiredAt: null
         });
 
         const response = await facade.request(nativeStatusRequest('ios'));
@@ -281,14 +286,11 @@ async function seedBase(gitlabPort: number) {
         appId: APP_ID,
         name: 'production',
         branchName: 'main',
-        iosTrackingEnabled: false,
+        iosBundleId: IOS_STORE_IDENTIFIER,
+        iosTrackingEnabled: true,
         androidTrackingEnabled: false,
-        stagingMembers: [
-            { type: 'device', id: 'staging-device-1', comment: 'lead engineer' }
-        ],
-        canaryMembers: [
-            { type: 'device', id: 'canary-device-1', comment: 'beta tester' }
-        ],
+        stagingMembers: [{ type: 'device', id: 'staging-device-1', comment: 'lead engineer' }],
+        canaryMembers: [{ type: 'device', id: 'canary-device-1', comment: 'beta tester' }],
         createdAt: new Date(),
         deletedAt: null
     });
@@ -363,8 +365,23 @@ function atSecond(ms: number): Date {
 }
 
 async function setRequiredAt(platform: 'ios' | 'android', requiredAt: Date | null): Promise<void> {
-    const channel = await ChannelEntity.query().filter({ id: CHANNEL_ID }).findOne();
-    if (platform === 'ios') channel.iosNativeUpdateRequiredAt = requiredAt;
-    else channel.androidNativeUpdateRequiredAt = requiredAt;
-    await channel.save();
+    let storeVersion = await StoreVersionEntity.query()
+        .filter({ channelId: CHANNEL_ID, platform })
+        .orderBy('firstDetectedAt', 'desc')
+        .findOneOrUndefined();
+    if (!storeVersion && requiredAt) {
+        storeVersion = await createPersistedEntity(StoreVersionEntity, {
+            id: uuid7(),
+            appId: APP_ID,
+            channelId: CHANNEL_ID,
+            platform,
+            storeIdentifier: platform === 'ios' ? IOS_STORE_IDENTIFIER : null,
+            version: 'native-status-test',
+            firstDetectedAt: new Date(Date.UTC(2026, 0, 1)),
+            nativeUpdateRequiredAt: requiredAt
+        });
+    }
+    if (!storeVersion) return;
+    storeVersion.nativeUpdateRequiredAt = requiredAt;
+    await storeVersion.save();
 }

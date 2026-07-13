@@ -50,6 +50,14 @@ test('channel detail page', async ({ page }) => {
 
     await captureModal('Staging cohort', 'Staging cohort', 'channel-cohort-staging.png');
     await captureModal('Canary cohort', 'Canary cohort', 'channel-cohort-canary.png');
+
+    await page.getByRole('button', { name: 'Settings' }).click();
+    const iosSettings = modal.locator('.platform-section').first();
+    await expect(iosSettings.locator('input[type="checkbox"]').nth(1)).not.toBeChecked();
+    await expect(iosSettings.locator('input[type="checkbox"]').nth(2)).toBeChecked();
+    await expect(iosSettings.locator('input[type="number"]')).toHaveValue('14');
+    await modal.getByRole('button', { name: 'Cancel' }).click();
+
     await captureModal('Settings', 'Channel settings', 'channel-settings.png');
 
     // The binary history modal closes via "Close", not "Cancel", so it gets its own capture.
@@ -66,6 +74,33 @@ test('channel detail page', async ({ page }) => {
 
     await modal.getByRole('button', { name: 'Close' }).click();
     await expect(modal).toBeHidden();
+});
+
+test('saving a delayed native-update policy sends the persistent mode and day count', async ({ page }) => {
+    await page.clock.install({ time: VRT_NOW });
+    await setupAuth(page);
+    await setupBaseMocks(page);
+    await mockChannelDetailRoutes(page);
+
+    let savedBody: Record<string, unknown> | null = null;
+    await page.route(`**/api/apps/${ids.appId}/channels/${ids.channelId}`, async route => {
+        if (route.request().method() !== 'PUT') return route.fallback();
+        savedBody = route.request().postDataJSON() as Record<string, unknown>;
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+
+    await page.goto(`/apps/${ids.appId}/channels/${ids.channelId}`);
+    await page.getByRole('button', { name: 'Settings' }).click();
+    const modal = page.locator('.vf-modal');
+    await modal.locator('.platform-section').first().locator('input[type="number"]').fill('21');
+    await modal.getByRole('button', { name: 'Save' }).click();
+
+    await expect.poll(() => savedBody).not.toBeNull();
+    expect(savedBody).toMatchObject({
+        iosNativeUpdateMode: 'after-days',
+        iosNativeUpdateAfterDays: 21
+    });
+    expect(savedBody).not.toHaveProperty('iosNativeUpdateRequiredAt');
 });
 
 test('binary version filter narrows each platform column independently', async ({ page }) => {

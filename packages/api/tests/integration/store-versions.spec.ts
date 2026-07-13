@@ -13,7 +13,9 @@ import { StoreVersionEntity } from '../../src/entities/StoreVersion.entity';
 import { UserEntity } from '../../src/entities/User.entity';
 import { VcsIntegrationEntity } from '../../src/entities/VcsIntegration.entity';
 import { StoreVersionPollJob } from '../../src/jobs/StoreVersionPoll.job';
+import { inferLegacyNativeUpdatePolicy } from '../../src/migrations/20260712_000000_native_update_policy';
 import { IStoreVersionLookupResult, StoreLookupService } from '../../src/services/StoreLookup.service';
+import { recordDetectedStoreVersion } from '../../src/services/StoreVersion.service';
 import { mockGitLabState, startMockGitLab, TEST_VCS_PROJECT_ID, ZERO_ID } from '../shared/setup';
 
 const APP_ID = '21212121-2121-2121-2121-212121212121';
@@ -77,6 +79,43 @@ function createGooglePlayLookup(): StoreLookupService {
     return new StoreLookupService({ GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: '{}' } as never, { warn: () => {}, error: () => {} } as never);
 }
 
+test('legacy backfill recovers a delayed policy and moves its deadline to the newest store version', () => {
+    const policy = inferLegacyNativeUpdatePolicy(new Date('2026-05-15T12:00:00.000Z'), [
+        {
+            id: 'old',
+            channelId: CHANNEL_TRACKED,
+            platform: 'ios',
+            firstDetectedAt: new Date('2026-05-01T12:00:00.000Z')
+        },
+        {
+            id: 'new',
+            channelId: CHANNEL_TRACKED,
+            platform: 'ios',
+            firstDetectedAt: new Date('2026-07-12T12:00:00.000Z')
+        }
+    ]);
+
+    assert.strictEqual(policy.mode, 'after-days');
+    assert.strictEqual(policy.afterDays, 14);
+    assert.strictEqual(policy.latestStoreVersionId, 'new');
+    assert.strictEqual(policy.latestRequiredAt?.toISOString(), '2026-07-26T12:00:00.000Z');
+});
+
+test('legacy backfill anchors an immediate policy to a newer store version detection', () => {
+    const policy = inferLegacyNativeUpdatePolicy(new Date('2026-05-15T12:00:01.000Z'), [
+        {
+            id: 'new',
+            channelId: CHANNEL_TRACKED,
+            platform: 'ios',
+            firstDetectedAt: new Date('2026-07-12T12:00:00.000Z')
+        }
+    ]);
+
+    assert.strictEqual(policy.mode, 'immediate');
+    assert.strictEqual(policy.afterDays, null);
+    assert.strictEqual(policy.latestRequiredAt?.toISOString(), '2026-07-12T12:00:00.000Z');
+});
+
 class StubLookup {
     appleVersion: string | null = '1.0.0';
     androidVersion: string | null = null;
@@ -134,6 +173,12 @@ describe('store versions', () => {
         const rows = await StoreVersionEntity.query().filter({ channelId: CHANNEL_TRACKED, platform: 'ios' }).find();
         assert.strictEqual(rows.length, 1);
         assert.strictEqual(rows[0].version, '1.0.0');
+        assert.strictEqual(rows[0].storeIdentifier, 'com.example.tracked');
+        assert.strictEqual(
+            rows[0].nativeUpdateRequiredAt?.getTime(),
+            rows[0].firstDetectedAt.getTime() + 14 * 86_400_000,
+            'the configured delay should be anchored to first detection'
+        );
     });
 
     test('re-polling same version does not insert a duplicate', async () => {
@@ -163,6 +208,11 @@ describe('store versions', () => {
         assert.ok(
             rows[0].firstDetectedAt.getTime() > previousLatest.firstDetectedAt.getTime(),
             'firstDetectedAt of new row should be greater than previous'
+        );
+        assert.strictEqual(
+            rows[0].nativeUpdateRequiredAt?.getTime(),
+            rows[0].firstDetectedAt.getTime() + 14 * 86_400_000,
+            'a newly detected version should get a fresh deadline'
         );
     });
 
@@ -218,63 +268,135 @@ describe('store versions', () => {
         assert.strictEqual(stub.appleCalls, before + 1, 'only tracked channel should hit apple');
     });
 
-    test('nativeUpdateRequiredAt round-trips via POST/PUT/GET on Channels controller', async () => {
+    test('changing bundle ID creates a new detection even when the store version is unchanged', async () => {
+        const channel = await ChannelEntity.query().filter({ id: CHANNEL_TRACKED }).findOne();
+        const previous = await StoreVersionEntity.query()
+            .filter({ channelId: CHANNEL_TRACKED, platform: 'ios' })
+            .sort({ firstDetectedAt: 'desc', id: 'desc' })
+            .findOne();
+        channel.iosBundleId = 'com.example.replacement';
+        await channel.save();
+
+        stub.appleVersion = previous.version;
+        await job.run();
+
+        const latest = await StoreVersionEntity.query()
+            .filter({ channelId: CHANNEL_TRACKED, platform: 'ios', storeIdentifier: 'com.example.replacement' })
+            .sort({ firstDetectedAt: 'desc', id: 'desc' })
+            .findOne();
+        assert.strictEqual(latest.version, previous.version);
+        assert.notStrictEqual(latest.id, previous.id);
+        assert.ok(latest.firstDetectedAt.getTime() >= previous.firstDetectedAt.getTime());
+    });
+
+    test('concurrent detections serialize without creating duplicate rows', async () => {
+        const channel = await ChannelEntity.query().filter({ id: CHANNEL_TRACKED }).findOne();
+        const storeIdentifier = channel.iosBundleId!;
+        const result = { version: 'concurrent-version', storeUrl: null };
+
+        await Promise.all([
+            recordDetectedStoreVersion(channel, 'ios', storeIdentifier, result),
+            recordDetectedStoreVersion(channel, 'ios', storeIdentifier, result)
+        ]);
+
+        const count = await StoreVersionEntity.query()
+            .filter({ channelId: CHANNEL_TRACKED, platform: 'ios', storeIdentifier, version: result.version })
+            .count();
+        assert.strictEqual(count, 1);
+    });
+
+    test('a lookup result is discarded if the bundle ID changes before it is recorded', async () => {
+        const channel = await ChannelEntity.query().filter({ id: CHANNEL_TRACKED }).findOne();
+        const staleStoreIdentifier = channel.iosBundleId!;
+        channel.iosBundleId = 'com.example.changed-again';
+        await channel.save();
+
+        const recorded = await recordDetectedStoreVersion(channel, 'ios', staleStoreIdentifier, {
+            version: 'stale-version',
+            storeUrl: 'https://example.invalid/stale'
+        });
+
+        assert.strictEqual(recorded, null);
+        const staleCount = await StoreVersionEntity.query()
+            .filter({ channelId: CHANNEL_TRACKED, platform: 'ios', storeIdentifier: staleStoreIdentifier, version: 'stale-version' })
+            .count();
+        assert.strictEqual(staleCount, 0);
+        const freshChannel = await ChannelEntity.query().filter({ id: CHANNEL_TRACKED }).findOne();
+        assert.notStrictEqual(freshChannel.iosStoreUrl, 'https://example.invalid/stale');
+    });
+
+    test('native update policy round-trips and changing its delay recalculates the latest store version', async () => {
         const previousAccess = mockGitLabState.membershipAccessLevel;
         mockGitLabState.membershipAccessLevel = 40; // maintainer — required for create/update
         try {
             const jwt = await makeUserJwt();
-            const requiredAt = new Date(Date.UTC(2026, 5, 1, 12, 0, 0));
-
             const createResp = await facade.request(
                 HttpRequest.POST(`/api/apps/${APP_ID}/channels`).header('authorization', `Bearer ${jwt}`).json({
                     name: 'native-required-roundtrip',
                     branchName: 'native-required-roundtrip',
-                    iosNativeUpdateRequiredAt: requiredAt.toISOString()
+                    iosNativeUpdateMode: 'after-days',
+                    iosNativeUpdateAfterDays: 14
                 })
             );
             assert.strictEqual(createResp.statusCode, 200);
             const created = createResp.json as {
                 id: string;
-                iosNativeUpdateRequiredAt: string | null;
-                androidNativeUpdateRequiredAt: string | null;
+                iosNativeUpdateMode: string;
+                iosNativeUpdateAfterDays: number | null;
+                androidNativeUpdateMode: string;
             };
-            assert.strictEqual(created.iosNativeUpdateRequiredAt, requiredAt.toISOString());
-            assert.strictEqual(created.androidNativeUpdateRequiredAt, null);
+            assert.strictEqual(created.iosNativeUpdateMode, 'after-days');
+            assert.strictEqual(created.iosNativeUpdateAfterDays, 14);
+            assert.strictEqual(created.androidNativeUpdateMode, 'none');
 
             const showResp = await facade.request(
                 HttpRequest.GET(`/api/apps/${APP_ID}/channels/${created.id}`).header('authorization', `Bearer ${jwt}`)
             );
             assert.strictEqual(showResp.statusCode, 200);
-            const fetched = showResp.json as { iosNativeUpdateRequiredAt: string | null };
-            assert.strictEqual(fetched.iosNativeUpdateRequiredAt, requiredAt.toISOString());
+            const fetched = showResp.json as { iosNativeUpdateMode: string; iosNativeUpdateAfterDays: number | null };
+            assert.strictEqual(fetched.iosNativeUpdateMode, 'after-days');
+            assert.strictEqual(fetched.iosNativeUpdateAfterDays, 14);
 
-            const newRequiredAt = new Date(Date.UTC(2026, 6, 15, 0, 0, 0));
+            const firstDetectedAt = new Date(Date.UTC(2026, 5, 1, 12, 0, 0));
+            const storeVersion = await createPersistedEntity(StoreVersionEntity, {
+                id: uuid(),
+                appId: APP_ID,
+                channelId: created.id,
+                platform: 'ios',
+                version: '3.4.1',
+                firstDetectedAt,
+                nativeUpdateRequiredAt: new Date(firstDetectedAt.getTime() + 14 * 86_400_000)
+            });
             const putResp = await facade.request(
                 HttpRequest.PUT(`/api/apps/${APP_ID}/channels/${created.id}`).header('authorization', `Bearer ${jwt}`).json({
-                    iosNativeUpdateRequiredAt: newRequiredAt.toISOString(),
-                    androidNativeUpdateRequiredAt: newRequiredAt.toISOString()
+                    iosNativeUpdateMode: 'after-days',
+                    iosNativeUpdateAfterDays: 7
                 })
             );
             assert.strictEqual(putResp.statusCode, 200);
             const updated = putResp.json as {
-                iosNativeUpdateRequiredAt: string | null;
-                androidNativeUpdateRequiredAt: string | null;
+                iosNativeUpdateMode: string;
+                iosNativeUpdateAfterDays: number | null;
             };
-            assert.strictEqual(updated.iosNativeUpdateRequiredAt, newRequiredAt.toISOString());
-            assert.strictEqual(updated.androidNativeUpdateRequiredAt, newRequiredAt.toISOString());
+            assert.strictEqual(updated.iosNativeUpdateMode, 'after-days');
+            assert.strictEqual(updated.iosNativeUpdateAfterDays, 7);
+            const recalculated = await StoreVersionEntity.query().filter({ id: storeVersion.id }).findOne();
+            assert.strictEqual(recalculated.nativeUpdateRequiredAt?.toISOString(), new Date(Date.UTC(2026, 5, 8, 12, 0, 0)).toISOString());
 
             const clearResp = await facade.request(
                 HttpRequest.PUT(`/api/apps/${APP_ID}/channels/${created.id}`)
                     .header('authorization', `Bearer ${jwt}`)
-                    .json({ iosNativeUpdateRequiredAt: null })
+                    .json({ iosNativeUpdateMode: 'none' })
             );
             assert.strictEqual(clearResp.statusCode, 200);
             const cleared = clearResp.json as {
-                iosNativeUpdateRequiredAt: string | null;
-                androidNativeUpdateRequiredAt: string | null;
+                iosNativeUpdateMode: string;
+                iosNativeUpdateAfterDays: number | null;
             };
-            assert.strictEqual(cleared.iosNativeUpdateRequiredAt, null);
-            assert.strictEqual(cleared.androidNativeUpdateRequiredAt, newRequiredAt.toISOString());
+            assert.strictEqual(cleared.iosNativeUpdateMode, 'none');
+            assert.strictEqual(cleared.iosNativeUpdateAfterDays, null);
+            const clearedStoreVersion = await StoreVersionEntity.query().filter({ id: storeVersion.id }).findOne();
+            assert.strictEqual(clearedStoreVersion.nativeUpdateRequiredAt, null);
         } finally {
             mockGitLabState.membershipAccessLevel = previousAccess;
         }
@@ -313,6 +435,8 @@ async function seedBase(gitlabPort: number) {
         androidPackageName: null,
         iosTrackingEnabled: true,
         androidTrackingEnabled: false,
+        iosNativeUpdateMode: 'after-days',
+        iosNativeUpdateAfterDays: 14,
         stagingMembers: [],
         canaryMembers: [],
         createdAt: new Date(),

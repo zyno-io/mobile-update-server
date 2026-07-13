@@ -1531,16 +1531,20 @@ components:
           type: boolean
         androidTrackingEnabled:
           type: boolean
-        iosNativeUpdateRequiredAt:
+        iosNativeUpdateMode:
+          $ref: "#/components/schemas/NativeUpdateMode"
+        androidNativeUpdateMode:
+          $ref: "#/components/schemas/NativeUpdateMode"
+        iosNativeUpdateAfterDays:
           type:
-            - string
+            - integer
             - "null"
-          format: date-time
-        androidNativeUpdateRequiredAt:
+          minimum: 0
+        androidNativeUpdateAfterDays:
           type:
-            - string
+            - integer
             - "null"
-          format: date-time
+          minimum: 0
         iosStoreUrl:
           type:
             - string
@@ -1568,12 +1572,20 @@ components:
         - androidPackageName
         - iosTrackingEnabled
         - androidTrackingEnabled
-        - iosNativeUpdateRequiredAt
-        - androidNativeUpdateRequiredAt
+        - iosNativeUpdateMode
+        - androidNativeUpdateMode
+        - iosNativeUpdateAfterDays
+        - androidNativeUpdateAfterDays
         - iosStoreUrl
         - androidStoreUrl
         - stagingMembers
         - canaryMembers
+    NativeUpdateMode:
+      enum:
+        - none
+        - immediate
+        - after-days
+      type: string
     IRolloutMember:
       type: object
       properties:
@@ -1610,22 +1622,22 @@ components:
           type: boolean
         androidTrackingEnabled:
           type: boolean
-        iosNativeUpdateRequiredAt:
-          anyOf:
-            - oneOf:
-                - type: string
-                  format: date-time
-                - type: string
-                - type: "null"
-            - type: "null"
-        androidNativeUpdateRequiredAt:
-          anyOf:
-            - oneOf:
-                - type: string
-                  format: date-time
-                - type: string
-                - type: "null"
-            - type: "null"
+        iosNativeUpdateMode:
+          $ref: "#/components/schemas/NativeUpdateMode"
+        androidNativeUpdateMode:
+          $ref: "#/components/schemas/NativeUpdateMode"
+        iosNativeUpdateAfterDays:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+          maximum: 36500
+        androidNativeUpdateAfterDays:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+          maximum: 36500
       required:
         - name
     IChannelUpdateInput:
@@ -1647,22 +1659,22 @@ components:
           type: boolean
         androidTrackingEnabled:
           type: boolean
-        iosNativeUpdateRequiredAt:
-          anyOf:
-            - oneOf:
-                - type: string
-                  format: date-time
-                - type: string
-                - type: "null"
-            - type: "null"
-        androidNativeUpdateRequiredAt:
-          anyOf:
-            - oneOf:
-                - type: string
-                  format: date-time
-                - type: string
-                - type: "null"
-            - type: "null"
+        iosNativeUpdateMode:
+          $ref: "#/components/schemas/NativeUpdateMode"
+        androidNativeUpdateMode:
+          $ref: "#/components/schemas/NativeUpdateMode"
+        iosNativeUpdateAfterDays:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+          maximum: 36500
+        androidNativeUpdateAfterDays:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+          maximum: 36500
     IStagingMembersUpdateInput:
       type: object
       properties:
@@ -1934,10 +1946,16 @@ components:
         firstDetectedAt:
           type: string
           format: date-time
+        nativeUpdateRequiredAt:
+          type:
+            - string
+            - "null"
+          format: date-time
       required:
         - platform
         - version
         - firstDetectedAt
+        - nativeUpdateRequiredAt
     INativeUpdateStatusResponse:
       type: object
       properties:

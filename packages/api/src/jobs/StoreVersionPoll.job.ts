@@ -1,13 +1,12 @@
 import { eventDispatcher } from '@zyno-io/ts-server-foundation';
 import { onServerMainBootstrapDone, onServerShutdown } from '@zyno-io/ts-server-foundation';
 import { ScopedLogger } from '@zyno-io/ts-server-foundation';
-import { createPersistedEntity, uuid7 } from '@zyno-io/ts-server-foundation';
 
 import { AppConfig } from '../config';
 import { ChannelEntity } from '../entities/Channel.entity';
-import { StoreVersionEntity } from '../entities/StoreVersion.entity';
 import { TargetPlatform } from '../entities/UpdateAsset.entity';
 import { IStoreVersionLookupResult, StoreLookupService } from '../services/StoreLookup.service';
+import { recordDetectedStoreVersion } from '../services/StoreVersion.service';
 
 const STARTUP_DELAY_MS = 30_000;
 const APPLE_REQUEST_INTERVAL_MS = 200;
@@ -40,16 +39,23 @@ export class StoreVersionPollJob {
 
         for (const channel of channels) {
             if (channel.iosTrackingEnabled && channel.iosBundleId) {
-                await this.pollOne(channel, 'ios', () => this.lookup.lookupApple(channel.iosBundleId!));
+                const storeIdentifier = channel.iosBundleId;
+                await this.pollOne(channel, 'ios', storeIdentifier, () => this.lookup.lookupApple(storeIdentifier));
                 await sleep(APPLE_REQUEST_INTERVAL_MS);
             }
             if (channel.androidTrackingEnabled && channel.androidPackageName) {
-                await this.pollOne(channel, 'android', () => this.lookup.lookupGooglePlay(channel.androidPackageName!));
+                const storeIdentifier = channel.androidPackageName;
+                await this.pollOne(channel, 'android', storeIdentifier, () => this.lookup.lookupGooglePlay(storeIdentifier));
             }
         }
     }
 
-    private async pollOne(channel: ChannelEntity, platform: TargetPlatform, fetcher: () => Promise<IStoreVersionLookupResult | null>): Promise<void> {
+    private async pollOne(
+        channel: ChannelEntity,
+        platform: TargetPlatform,
+        storeIdentifier: string,
+        fetcher: () => Promise<IStoreVersionLookupResult | null>
+    ): Promise<void> {
         let result: IStoreVersionLookupResult | null;
         try {
             result = await fetcher();
@@ -59,30 +65,8 @@ export class StoreVersionPollJob {
         }
         if (!result) return;
 
-        await this.updateChannelStoreUrl(channel, platform, result.storeUrl);
-
-        const latest = await StoreVersionEntity.query()
-            .filter({ channelId: channel.id, platform })
-            .orderBy('firstDetectedAt', 'desc')
-            .findOneOrUndefined();
-        if (latest && latest.version === result.version) return;
-
-        await createPersistedEntity(StoreVersionEntity, {
-            id: uuid7(),
-            appId: channel.appId,
-            channelId: channel.id,
-            platform,
-            version: result.version,
-            firstDetectedAt: new Date()
-        });
-        this.logger.info(`Detected new ${platform} version ${result.version} for channel ${channel.id}`);
-    }
-
-    private async updateChannelStoreUrl(channel: ChannelEntity, platform: TargetPlatform, storeUrl: string | null): Promise<void> {
-        const field = platform === 'ios' ? 'iosStoreUrl' : 'androidStoreUrl';
-        if (channel[field] === storeUrl) return;
-        channel[field] = storeUrl;
-        await channel.save();
+        const recorded = await recordDetectedStoreVersion(channel, platform, storeIdentifier, result);
+        if (recorded?.created) this.logger.info(`Detected new ${platform} version ${result.version} for channel ${channel.id}`);
     }
 }
 

@@ -260,6 +260,7 @@
                                         v-model.number="settingsForm[platform].afterDays"
                                         type="number"
                                         min="0"
+                                        max="36500"
                                         class="inline-number"
                                         :disabled="settingsForm[platform].requireMode !== 'after-days'"
                                     />
@@ -401,8 +402,7 @@ function storeTrackingEnabled(platform: Platform): boolean {
 }
 
 function nativeUpdateRequiredAt(platform: Platform): Date | null {
-    if (!channel.value) return null;
-    const raw = platform === 'ios' ? channel.value.iosNativeUpdateRequiredAt : channel.value.androidNativeUpdateRequiredAt;
+    const raw = latestStore.value[platform]?.nativeUpdateRequiredAt;
     return raw ? new Date(raw) : null;
 }
 function nativeUpdatePillClass(platform: Platform): string {
@@ -417,18 +417,6 @@ function nativeUpdateLabel(platform: Platform): string {
     return `Required ${formatDistanceToNow(at, { addSuffix: true })}`;
 }
 
-function deriveMode(at: Date | null, firstDetectedAt: string | Date | null): { mode: RequireMode; afterDays: number } {
-    if (!at) return { mode: 'none', afterDays: 14 };
-    if (at.getTime() <= Date.now()) return { mode: 'immediate', afterDays: 14 };
-    if (firstDetectedAt) {
-        const detected = new Date(firstDetectedAt).getTime();
-        const diffDays = Math.max(1, Math.round((at.getTime() - detected) / 86_400_000));
-        return { mode: 'after-days', afterDays: diffDays };
-    }
-    const diffFromNow = Math.max(1, Math.round((at.getTime() - Date.now()) / 86_400_000));
-    return { mode: 'after-days', afterDays: diffFromNow };
-}
-
 function setRequireMode(platform: Platform, mode: RequireMode) {
     settingsForm[platform].requireMode = mode;
 }
@@ -438,28 +426,19 @@ function openSettings() {
     for (const platform of platforms) {
         const bundleId = platform === 'ios' ? channel.value.iosBundleId : channel.value.androidPackageName;
         const trackingEnabled = platform === 'ios' ? channel.value.iosTrackingEnabled : channel.value.androidTrackingEnabled;
-        const requiredAt = nativeUpdateRequiredAt(platform);
-        const detected = latestStore.value[platform]?.firstDetectedAt ?? null;
-        const { mode, afterDays } = deriveMode(requiredAt, detected);
+        const mode = platform === 'ios' ? channel.value.iosNativeUpdateMode : channel.value.androidNativeUpdateMode;
+        const afterDays = platform === 'ios' ? channel.value.iosNativeUpdateAfterDays : channel.value.androidNativeUpdateAfterDays;
         settingsForm[platform].bundleId = bundleId ?? '';
         settingsForm[platform].trackingEnabled = trackingEnabled;
         settingsForm[platform].requireMode = mode;
-        settingsForm[platform].afterDays = afterDays;
+        settingsForm[platform].afterDays = afterDays ?? 14;
     }
     showSettings.value = true;
 }
 
-function computeRequiredAt(platform: Platform): string | null {
+function requireModeForSave(platform: Platform): RequireMode {
     const form = settingsForm[platform];
-    if (!form.trackingEnabled) return null;
-    if (form.requireMode === 'none') return null;
-    if (form.requireMode === 'immediate') return new Date().toISOString();
-    const days = Number(form.afterDays);
-    if (!Number.isFinite(days) || days < 0) return null;
-    const detected = latestStore.value[platform]?.firstDetectedAt;
-    if (!detected) return null;
-    const ms = new Date(detected).getTime() + days * 86_400_000;
-    return new Date(ms).toISOString();
+    return form.trackingEnabled ? form.requireMode : 'none';
 }
 
 async function loadUpdates(platform: Platform) {
@@ -598,8 +577,10 @@ async function saveSettings() {
                     androidPackageName: settingsForm.android.bundleId.trim() || null,
                     iosTrackingEnabled: settingsForm.ios.trackingEnabled,
                     androidTrackingEnabled: settingsForm.android.trackingEnabled,
-                    iosNativeUpdateRequiredAt: computeRequiredAt('ios'),
-                    androidNativeUpdateRequiredAt: computeRequiredAt('android')
+                    iosNativeUpdateMode: requireModeForSave('ios'),
+                    androidNativeUpdateMode: requireModeForSave('android'),
+                    iosNativeUpdateAfterDays: requireModeForSave('ios') === 'after-days' ? settingsForm.ios.afterDays : null,
+                    androidNativeUpdateAfterDays: requireModeForSave('android') === 'after-days' ? settingsForm.android.afterDays : null
                 }
             })
         );
