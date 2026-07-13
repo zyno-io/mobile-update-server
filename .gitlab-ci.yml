@@ -123,7 +123,7 @@ visual regression test:
         "${CI_REGISTRY}"
 
 build:canary:
-  needs:
+  dependencies:
     - prepare build
   extends: .build-base
   rules:
@@ -141,7 +141,7 @@ build:canary:
     buildah push ${CI_REGISTRY_IMAGE}:${BUILD_TAG}
 
 build:canary:cli:
-  needs:
+  dependencies:
     - prepare build
   extends: .build-base
   rules:
@@ -161,9 +161,8 @@ build:canary:cli:
 
 publish:cli:npm:
   stage: deploy
-  needs:
+  dependencies:
     - prepare build
-    - test:cli
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
@@ -181,10 +180,8 @@ publish:cli:npm:
 
 deploy:
   stage: deploy
-  needs:
+  dependencies:
     - prepare build
-    - build:canary
-    - build:canary:cli
   rules:
     - if: $CI_COMMIT_TITLE =~ /^v\d+\.\d+\.\d+$/
       when: never

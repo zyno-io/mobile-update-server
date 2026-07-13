@@ -89,6 +89,8 @@ test('saving a delayed native-update policy sends the persistent mode and day co
         return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     });
 
+    // The settings form is taller than Playwright's default CI viewport.
+    await page.setViewportSize({ width: 1280, height: 1600 });
     await page.goto(`/apps/${ids.appId}/channels/${ids.channelId}`);
     await page.getByRole('button', { name: 'Settings' }).click();
     const modal = page.locator('.vf-modal');

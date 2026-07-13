@@ -18,6 +18,10 @@ describe('onboarding', () => {
     before(async () => {
         facade = TestingHelpers.createTestingFacade(CoreAppOptions, {
             enableDatabase: true,
+            // Lock-concurrency assertions require independent MySQL transactions.
+            // The shared savepoint harness maps them onto one backend transaction,
+            // where a transaction-scoped lock is re-entrant and cannot serialize them.
+            useSavepoints: false,
             databasePrefix: 'mus_onboard'
         });
         await facade.start();

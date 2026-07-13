@@ -148,6 +148,9 @@ describe('store versions', () => {
 
         facade = TestingHelpers.createTestingFacade(CoreAppOptions, {
             enableDatabase: true,
+            // This suite verifies transaction-lock behavior with concurrent callers,
+            // which requires separate MySQL transactions instead of shared savepoints.
+            useSavepoints: false,
             databasePrefix: 'mus_storever'
         });
         await facade.start();
