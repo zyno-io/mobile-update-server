@@ -18,16 +18,17 @@ import { mockGitLabState, startMockGitLab, TEST_VCS_PROJECT_ID, ZERO_ID } from '
 const APP_ID = '22222222-2222-2222-2222-222222222222';
 const CHANNEL_ID = '23232323-2323-2323-2323-232323232323';
 
-// An update's binary is identified only by BinaryBuild.fingerprint === Update.runtimeVersion.
-// iOS 2.0.0 was built twice (a rebuild changed the fingerprint), so it maps to TWO fingerprints —
-// the case a naive `runtimeVersion === binaryVersion` comparison gets wrong.
+// Fingerprint-policy updates are identified by BinaryBuild.fingerprint === Update.runtimeVersion.
+// iOS 2.0.0 was built twice (a rebuild changed the fingerprint), so it maps to TWO fingerprints.
+// AppVersion-policy updates instead use the binary version itself as their runtime version.
 const IOS_V2_FP_A = 'fp-ios-2.0.0-a';
 const IOS_V2_FP_B = 'fp-ios-2.0.0-b';
 const IOS_V1_FP = 'fp-ios-1.0.0';
+const IOS_V1_APP_VERSION = '1.0.0';
 const ANDROID_V2_FP = 'fp-android-2.0.0';
 
-// No binary build has this fingerprint (e.g. an appVersion-policy runtimeVersion, or a build
-// predating this server). It must survive an unfiltered list but never match a version filter.
+// No binary build has this runtime version (e.g. a build predating this server). It must survive
+// an unfiltered list but never match a version filter.
 const ORPHAN_RUNTIME = '9.9.9-orphan';
 
 describe('update filters + binary versions', () => {
@@ -79,7 +80,7 @@ describe('update filters + binary versions', () => {
     test('unfiltered index returns every non-draft update on both platforms', async () => {
         const updates = await getUpdates();
         const runtimes = updates.map(u => u.runtimeVersion).sort();
-        assert.deepStrictEqual(runtimes, [ANDROID_V2_FP, IOS_V1_FP, IOS_V2_FP_A, IOS_V2_FP_B, ORPHAN_RUNTIME].sort());
+        assert.deepStrictEqual(runtimes, [ANDROID_V2_FP, IOS_V1_APP_VERSION, IOS_V1_FP, IOS_V2_FP_A, IOS_V2_FP_B, ORPHAN_RUNTIME].sort());
         // The draft is never exposed.
         assert.ok(!updates.some(u => u.status === 'draft'));
     });
@@ -97,10 +98,10 @@ describe('update filters + binary versions', () => {
         assert.deepStrictEqual(runtimes, [IOS_V2_FP_A, IOS_V2_FP_B].sort());
     });
 
-    test('binaryVersion filter excludes other versions and orphan runtime versions', async () => {
+    test('binaryVersion filter matches appVersion and fingerprint runtime policies', async () => {
         const updates = await getUpdates({ platform: 'ios', binaryVersion: '1.0.0' });
-        assert.strictEqual(updates.length, 1);
-        assert.strictEqual(updates[0].runtimeVersion, IOS_V1_FP);
+        const runtimes = updates.map(u => u.runtimeVersion).sort();
+        assert.deepStrictEqual(runtimes, [IOS_V1_APP_VERSION, IOS_V1_FP].sort());
     });
 
     test('binaryVersion with no matching builds returns [] rather than erroring', async () => {
@@ -233,6 +234,7 @@ async function seed(gitlabPort: number) {
         });
 
     await update('ios', IOS_V1_FP, 'released');
+    await update('ios', IOS_V1_APP_VERSION, 'released');
     await update('ios', IOS_V2_FP_A, 'released');
     await update('ios', IOS_V2_FP_B, 'staging');
     await update('ios', ORPHAN_RUNTIME, 'released');

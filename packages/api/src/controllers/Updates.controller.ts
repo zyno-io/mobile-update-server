@@ -123,15 +123,15 @@ export class UpdatesController {
 
         let runtimeVersionFilter: { $in: string[] } | undefined;
         if (binaryVersion && platform) {
-            // Updates carry a runtimeVersion, not a binary version. The two are linked only by
-            // BinaryBuild.fingerprint === Update.runtimeVersion, and one binary version can have
-            // several fingerprints (e.g. a rebuild with different native deps), so match the set.
+            // Fingerprint-policy updates use BinaryBuild.fingerprint as their runtime version,
+            // while appVersion-policy updates use the binary version itself. One binary version
+            // can also have several fingerprints after rebuilds, so match every representation.
             const fingerprints = await BinaryBuildEntity.query().filter({ appId, channelId, platform, binaryVersion }).findField('fingerprint');
 
             // An empty $in would render `IN ()`, which is a syntax error.
             if (!fingerprints.length) return [];
 
-            runtimeVersionFilter = { $in: [...new Set(fingerprints)] };
+            runtimeVersionFilter = { $in: [...new Set([binaryVersion, ...fingerprints])] };
         }
 
         const updates = await UpdateEntity.query()
