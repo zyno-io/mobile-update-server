@@ -1,8 +1,9 @@
-import { http, HttpBadRequestError, HttpNotFoundError, HttpQueries } from '@deepkit/http';
+import { http, HttpNotFoundError, HttpQueries } from '@zyno-io/ts-server-foundation';
 
 import { UserAuthMiddleware } from '../accessories/AuthMiddleware.accessory';
 import { ApiController } from '../accessories/Controller.accessory';
 import { GitLabProjectAuthService } from '../accessories/GitLabProjectAuth.accessory';
+import { parseTargetPlatform } from '../accessories/Platform.accessory';
 import { AppEntity } from '../entities/App.entity';
 import { ChannelEntity } from '../entities/Channel.entity';
 import { StoreVersionEntity } from '../entities/StoreVersion.entity';
@@ -39,9 +40,4 @@ export class StoreVersionsController {
             latest: row ? { platform: row.platform, version: row.version, firstDetectedAt: row.firstDetectedAt } : null
         };
     }
-}
-
-function parseTargetPlatform(platform: string | undefined): TargetPlatform {
-    if (platform === 'ios' || platform === 'android') return platform;
-    throw new HttpBadRequestError('platform must be ios or android');
 }

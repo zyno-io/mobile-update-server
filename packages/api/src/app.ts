@@ -1,4 +1,4 @@
-import { createApp, CreateAppOptions } from '@zyno-io/dk-server-foundation';
+import { createApp, CreateAppOptions } from '@zyno-io/ts-server-foundation';
 import { compact } from 'lodash';
 
 import { AdminAuthMiddleware, UpdateCiTokenMiddleware, UserAuthMiddleware } from './accessories/AuthMiddleware.accessory';
@@ -16,10 +16,9 @@ import { StoreVersionsController } from './controllers/StoreVersions.controller'
 import { UpdatesController } from './controllers/Updates.controller';
 import { UsersController } from './controllers/Users.controller';
 import { VcsIntegrationsController } from './controllers/VcsIntegrations.controller';
-import { DB } from './database';
+import { Db } from './database';
 import { DeletedDataCleanupJob } from './jobs/DeletedDataCleanup.job';
 import { StoreVersionPollJob } from './jobs/StoreVersionPoll.job';
-import { StaticContentListener } from './listener';
 import { ManifestBuilderService } from './services/ManifestBuilder.service';
 import { S3Service } from './services/S3.service';
 import { StoreLookupService } from './services/StoreLookup.service';
@@ -27,7 +26,7 @@ import { VcsService } from './services/Vcs.service';
 
 export const CoreAppOptions: CreateAppOptions<AppConfig> = {
     config: AppConfig,
-    db: DB,
+    db: Db,
     cors: () => ({
         hosts: compact(['http://localhost:7935', 'http://localhost:7936']),
         credentials: true
@@ -43,6 +42,7 @@ export const CoreAppOptions: CreateAppOptions<AppConfig> = {
             }
         }
     },
+    staticFiles: true,
     controllers: [
         SessionController,
         AppsController,
@@ -67,7 +67,7 @@ export const CoreAppOptions: CreateAppOptions<AppConfig> = {
         ManifestBuilderService,
         StoreLookupService
     ],
-    listeners: [StaticContentListener, DeletedDataCleanupJob, StoreVersionPollJob]
+    listeners: [DeletedDataCleanupJob, StoreVersionPollJob]
 };
 
 export const createMobileUpdateServerApp = () => createApp(CoreAppOptions);

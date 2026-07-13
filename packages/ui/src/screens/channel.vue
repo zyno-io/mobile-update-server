@@ -43,6 +43,7 @@
                                 <code class="fingerprint" :title="latestBinaries[platform]!.fingerprint">{{
                                     latestBinaries[platform]!.fingerprint
                                 }}</code>
+                                <button class="link-button" @click="openHistory(platform)"><i class="fa fa-clock-rotate-left" /> History</button>
                             </template>
                             <span v-else class="empty">No binary builds recorded yet.</span>
                         </div>
@@ -77,7 +78,7 @@
             </div>
 
             <h2>OTA updates</h2>
-            <div v-if="!updates?.length" class="empty-block">
+            <div v-if="showNoUpdatesBlock" class="empty-block">
                 <i class="fa fa-arrow-up-from-bracket" />
                 <p>No updates yet. Push from your CI to get started.</p>
             </div>
@@ -86,8 +87,23 @@
                     <div class="updates-column-header">
                         <i :class="platformIcon(platform)" />
                         <h3>{{ platformLabel(platform) }}</h3>
+                        <select
+                            v-if="binaryVersions[platform].length"
+                            class="version-filter"
+                            :value="versionFilter[platform] ?? ''"
+                            :disabled="updatesLoading[platform]"
+                            :aria-label="`Filter ${platformLabel(platform)} updates by binary version`"
+                            @change="selectVersion(platform, ($event.target as HTMLSelectElement).value)"
+                        >
+                            <option value="">All versions</option>
+                            <option v-for="(version, i) in binaryVersions[platform]" :key="version" :value="version">
+                                {{ i === 0 ? `${version} (Latest)` : version }}
+                            </option>
+                        </select>
                     </div>
-                    <div v-if="!updatesByPlatform[platform].length" class="empty">No updates yet.</div>
+                    <div v-if="!updatesByPlatform[platform].length" class="empty">
+                        {{ versionFilter[platform] ? `No updates for binary version ${versionFilter[platform]}.` : 'No updates yet.' }}
+                    </div>
                     <div v-else class="updates">
                         <div
                             v-for="u in updatesByPlatform[platform]"
@@ -156,6 +172,45 @@
                     <button type="button" class="primary" :disabled="savingMembers" @click="saveMembers">
                         {{ savingMembers ? 'Saving...' : 'Save' }}
                     </button>
+                </div>
+            </div>
+        </VfModal>
+
+        <VfModal v-if="historyPlatform" @close="historyPlatform = null">
+            <div class="modal-form history">
+                <div class="section-header">
+                    <i :class="platformIcon(historyPlatform)" />
+                    <h2>{{ platformLabel(historyPlatform) }} binary history</h2>
+                </div>
+
+                <div v-if="historyLoading" class="empty">Loading...</div>
+                <div v-else-if="!historyBuilds.length" class="empty">No binary builds recorded yet.</div>
+                <div v-else class="builds">
+                    <div v-for="build in historyBuilds" :key="build.id" class="build">
+                        <span class="version">v{{ build.binaryVersion }}</span>
+                        <span class="meta">
+                            <a
+                                v-if="commitUrl(build.commitHash)"
+                                class="commit-link"
+                                :href="commitUrl(build.commitHash)!"
+                                target="_blank"
+                                rel="noopener"
+                                >{{ build.commitHash.substring(0, 7) }}</a
+                            >
+                            <code v-else class="commit-link">{{ build.commitHash.substring(0, 7) }}</code>
+                            · {{ build.commitAuthor }}
+                        </span>
+                        <code class="fingerprint" :title="build.fingerprint">{{ build.fingerprint }}</code>
+                        <span class="meta date">{{ formatDate(build.createdAt) }}</span>
+                    </div>
+                </div>
+
+                <p v-if="historyBuilds.length >= HISTORY_LIMIT" class="hint">
+                    <i class="fa fa-circle-info" /> Showing the {{ HISTORY_LIMIT }} most recent builds.
+                </p>
+
+                <div class="actions">
+                    <button type="button" @click="historyPlatform = null">Close</button>
                 </div>
             </div>
         </VfModal>
@@ -261,15 +316,33 @@ const route = useRoute();
 const appId = computed(() => route.params.appId as string);
 const channelId = computed(() => route.params.channelId as string);
 
+// Mirrors the server-side cap on the binary-builds index.
+const HISTORY_LIMIT = 50;
+
 const isLoading = ref(true);
 const app = ref<IAppDetailResponse>();
 const channel = ref<IChannelResponse>();
-const updates = ref<IUpdateResponse[]>();
 const platforms = ['ios', 'android'] as const;
 type Platform = (typeof platforms)[number];
 type RequireMode = 'none' | 'immediate' | 'after-days';
 const latestBinaries = ref<Record<Platform, IBinaryBuildResponse | null>>({ ios: null, android: null });
 const latestStore = ref<Record<Platform, IStoreVersionResponse | null>>({ ios: null, android: null });
+
+// Updates are fetched per platform so each column can carry its own binary-version filter.
+// null = "All versions".
+const updatesByPlatform = ref<Record<Platform, IUpdateResponse[]>>({ ios: [], android: [] });
+const updatesLoading = ref<Record<Platform, boolean>>({ ios: false, android: false });
+const binaryVersions = ref<Record<Platform, string[]>>({ ios: [], android: [] });
+const versionFilter = ref<Record<Platform, string | null>>({ ios: null, android: null });
+
+const historyPlatform = ref<Platform | null>(null);
+const historyBuilds = ref<IBinaryBuildResponse[]>([]);
+const historyLoading = ref(false);
+
+// Only claim the channel has never been pushed to when nothing is filtered out.
+const showNoUpdatesBlock = computed(
+    () => platforms.every(p => !updatesByPlatform.value[p].length) && platforms.every(p => versionFilter.value[p] === null)
+);
 
 type MemberTier = 'staging' | 'canary';
 const memberEditorTier = ref<MemberTier | null>(null);
@@ -303,7 +376,7 @@ const canManage = computed(() => {
 watch(memberEditorTier, tier => {
     if (!tier || !channel.value) return;
     const source = tier === 'staging' ? channel.value.stagingMembers : channel.value.canaryMembers;
-    memberEditorRows.value = source.map(m => ({ ...m }));
+    memberEditorRows.value = (source ?? []).map(m => ({ ...m }));
 });
 
 function openMemberEditor(tier: MemberTier) {
@@ -389,12 +462,75 @@ function computeRequiredAt(platform: Platform): string | null {
     return new Date(ms).toISOString();
 }
 
+async function loadUpdates(platform: Platform) {
+    const binaryVersion = versionFilter.value[platform];
+    try {
+        updatesLoading.value[platform] = true;
+        updatesByPlatform.value[platform] = await dataFromAsync(
+            UpdatesApi.getUpdatesIndex({
+                path: { appId: appId.value, channelId: channelId.value },
+                query: { platform, ...(binaryVersion ? { binaryVersion } : {}) }
+            })
+        );
+    } finally {
+        updatesLoading.value[platform] = false;
+    }
+}
+
+async function selectVersion(platform: Platform, value: string) {
+    versionFilter.value[platform] = value || null;
+    try {
+        // Only this column reloads; leave its rows in place until the new ones land.
+        await loadUpdates(platform);
+    } catch (err) {
+        handleErrorAndAlert(err);
+    }
+}
+
+async function openHistory(platform: Platform) {
+    historyPlatform.value = platform;
+    historyBuilds.value = [];
+    try {
+        historyLoading.value = true;
+        historyBuilds.value = await dataFromAsync(
+            BinaryBuildsApi.getBinaryBuildsIndex({
+                path: { appId: appId.value, channelId: channelId.value },
+                query: { platform }
+            })
+        );
+    } catch (err) {
+        handleErrorAndAlert(err);
+    } finally {
+        historyLoading.value = false;
+    }
+}
+
 async function load() {
     try {
         isLoading.value = true;
         app.value = await dataFromAsync(AppsApi.getAppsShow({ path: { id: appId.value } }));
         channel.value = await dataFromAsync(ChannelsApi.getChannelsShow({ path: { appId: appId.value, id: channelId.value } }));
-        updates.value = await dataFromAsync(UpdatesApi.getUpdatesIndex({ path: { appId: appId.value, channelId: channelId.value } }));
+
+        const versionsByPlatform = await Promise.all(
+            platforms.map(async platform => {
+                const resp = await dataFromAsync(
+                    BinaryBuildsApi.getBinaryBuildsVersions({
+                        path: { appId: appId.value, channelId: channelId.value },
+                        query: { platform }
+                    })
+                );
+                return [platform, resp.versions] as const;
+            })
+        );
+        binaryVersions.value = Object.fromEntries(versionsByPlatform) as Record<Platform, string[]>;
+
+        // Default to the newest binary version. Platforms with no builds fall back to "All
+        // versions", so a channel that has never had a binary build still shows its updates.
+        for (const platform of platforms) {
+            versionFilter.value[platform] = binaryVersions.value[platform][0] ?? null;
+        }
+        await Promise.all(platforms.map(platform => loadUpdates(platform)));
+
         const [binariesByPlatform, storeByPlatform] = await Promise.all([
             Promise.all(
                 platforms.map(async platform => {
@@ -503,7 +639,10 @@ async function promote(update: IUpdateResponse) {
     try {
         await dataFromAsync(
             UpdatesApi.postUpdatesPromote({
-                path: { appId: app.value.id, channelId: channel.value.id, id: update.id }
+                path: { appId: app.value.id, channelId: channel.value.id, id: update.id },
+                // No target: let the server advance one tier (it skips canary when that cohort is
+                // empty, which is what nextTierFor mirrors above).
+                body: {}
             })
         );
         await load();
@@ -553,11 +692,6 @@ function formatDate(d: string | Date): string {
     return format(new Date(d), 'MMM d, h:mm a');
 }
 
-function updatePlatform(update: IUpdateResponse): Platform {
-    const p = (update as IUpdateResponse & { platform?: string }).platform;
-    return p === 'android' ? 'android' : 'ios';
-}
-
 function primaryLabel(u: IUpdateResponse): string {
     const v = u.otaVersion?.trim();
     return v ? v : u.id.substring(0, 8);
@@ -588,14 +722,6 @@ function statusLabel(u: IUpdateResponse): string {
 function statusClass(u: IUpdateResponse): string {
     return u.status === 'rolled-back' ? 'rolled-back' : u.status;
 }
-
-const updatesByPlatform = computed<Record<Platform, IUpdateResponse[]>>(() => {
-    const grouped: Record<Platform, IUpdateResponse[]> = { ios: [], android: [] };
-    for (const u of updates.value ?? []) {
-        grouped[updatePlatform(u)].push(u);
-    }
-    return grouped;
-});
 
 onMounted(load);
 </script>
@@ -693,6 +819,12 @@ html.dark .platform-header i {
     .commit-link {
         @apply font-mono text-blue-700 hover:underline;
     }
+    .link-button {
+        @apply text-xs text-neutral-500 hover:text-blue-700 bg-transparent border-0 p-0 flex items-center gap-1 cursor-pointer;
+        i {
+            @apply text-[10px];
+        }
+    }
     .empty {
         @apply text-xs text-neutral-500;
     }
@@ -740,6 +872,10 @@ html.dark .platform-row {
     }
     h3 {
         @apply text-sm font-semibold;
+    }
+    /* Selects are w-full globally (base.scss); shrink to sit inline in the header. */
+    .version-filter {
+        @apply w-auto ml-auto text-xs py-1 max-w-[60%] truncate;
     }
 }
 
@@ -918,6 +1054,52 @@ html.dark .update:hover {
     }
     .inline-number {
         @apply w-16 text-center;
+    }
+}
+
+.modal-form.history {
+    .section-header {
+        @apply flex items-center gap-2;
+        i {
+            @apply text-lg text-neutral-600;
+        }
+    }
+    .builds {
+        @apply flex flex-col gap-1 max-h-[50vh] overflow-y-auto;
+    }
+    .build {
+        @apply flex items-center gap-3 flex-wrap min-w-0 text-sm py-2 border-b border-neutral-500/15 last:border-b-0;
+
+        .version {
+            @apply font-semibold;
+        }
+        .meta {
+            @apply text-xs text-neutral-500;
+        }
+        /* Pin the date to the right edge of the row. */
+        .date {
+            @apply ml-auto whitespace-nowrap;
+        }
+        .fingerprint {
+            @apply text-xs font-mono px-2 py-0.5 bg-neutral-100 rounded max-w-[220px] truncate;
+        }
+        .commit-link {
+            @apply font-mono text-blue-700 hover:underline;
+        }
+    }
+}
+
+html.dark .modal-form.history {
+    .section-header i {
+        @apply text-neutral-300;
+    }
+    .build {
+        .fingerprint {
+            @apply bg-neutral-800;
+        }
+        .commit-link {
+            @apply text-blue-400;
+        }
     }
 }
 </style>

@@ -1,5 +1,5 @@
-import { entity, PrimaryKey } from '@deepkit/type';
-import { BaseEntity, HasDefault, UuidString } from '@zyno-io/dk-server-foundation';
+import { entity, PrimaryKey } from '@zyno-io/ts-server-foundation';
+import { BaseEntity, HasDefault, UuidString } from '@zyno-io/ts-server-foundation';
 
 export interface IUserVcsSession {
     accessToken: string;

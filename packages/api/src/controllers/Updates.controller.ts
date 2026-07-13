@@ -1,16 +1,27 @@
-import { http, HttpBadRequestError, HttpBody, HttpNotFoundError, HttpRequest, HttpUnauthorizedError, UploadedFile } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
-import { DatabaseSession } from '@deepkit/orm';
-import { createPersistedEntity, MutexKey, OkResponse, persistEntity, uuid7 } from '@zyno-io/dk-server-foundation';
+import {
+    http,
+    HttpBadRequestError,
+    HttpBody,
+    HttpNotFoundError,
+    HttpQueries,
+    HttpRequest,
+    HttpUnauthorizedError,
+    FileUpload
+} from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { DatabaseSession } from '@zyno-io/ts-server-foundation';
+import { createPersistedEntity, MutexKey, OkResponse, persistEntity, uuid7 } from '@zyno-io/ts-server-foundation';
 import { createHash } from 'crypto';
 import { readFile } from 'fs/promises';
 
 import { hashCiToken, ICiJobData, UpdateCiTokenMiddleware, UserAuthMiddleware, validateCiToken } from '../accessories/AuthMiddleware.accessory';
 import { ApiController } from '../accessories/Controller.accessory';
 import { GitLabProjectAuthService } from '../accessories/GitLabProjectAuth.accessory';
+import { optionalTargetPlatform, parseTargetPlatform } from '../accessories/Platform.accessory';
 import { AppConfig } from '../config';
-import { DB } from '../database';
+import { Db } from '../database';
 import { AppEntity } from '../entities/App.entity';
+import { BinaryBuildEntity } from '../entities/BinaryBuild.entity';
 import { ChannelEntity } from '../entities/Channel.entity';
 import { UpdateEntity, UpdateStatus } from '../entities/Update.entity';
 import { AssetPlatform, TargetPlatform, UpdateAssetEntity } from '../entities/UpdateAsset.entity';
@@ -56,7 +67,7 @@ interface IUpdateCreateInput {
 }
 
 interface IUpdateAssetUploadInput {
-    file: UploadedFile;
+    file: FileUpload;
     key: string;
     platform: AssetPlatform;
     isLaunchAsset: boolean;
@@ -73,7 +84,7 @@ interface IPromoteInput {
 @ApiController('/api/apps/:appId/channels/:channelId/updates')
 export class UpdatesController {
     constructor(
-        private db: DB,
+        private db: Db,
         private logger: ScopedLogger,
         private s3: S3Service,
         private projectAuth: GitLabProjectAuthService,
@@ -92,12 +103,45 @@ export class UpdatesController {
 
     @http.GET()
     @http.middleware(UserAuthMiddleware)
-    async index(appId: string, channelId: string, user: UserEntity): Promise<IUpdateResponse[]> {
+    async index(
+        appId: string,
+        channelId: string,
+        query: HttpQueries<{ platform?: TargetPlatform; binaryVersion?: string }>,
+        user: UserEntity
+    ): Promise<IUpdateResponse[]> {
+        const platform = optionalTargetPlatform(query.platform);
+        const { binaryVersion } = query;
+
+        // A binary version only identifies a build together with its platform: ios 1.4.2 and
+        // android 1.4.2 are unrelated rows.
+        if (binaryVersion && !platform) {
+            throw new HttpBadRequestError('platform is required when filtering by binaryVersion');
+        }
+
         const { app } = await this.loadAppAndChannel(appId, channelId);
         await this.projectAuth.requireRole(user, app.vcsId, app.vcsProjectId, 'read');
 
+        let runtimeVersionFilter: { $in: string[] } | undefined;
+        if (binaryVersion && platform) {
+            // Updates carry a runtimeVersion, not a binary version. The two are linked only by
+            // BinaryBuild.fingerprint === Update.runtimeVersion, and one binary version can have
+            // several fingerprints (e.g. a rebuild with different native deps), so match the set.
+            const fingerprints = await BinaryBuildEntity.query().filter({ appId, channelId, platform, binaryVersion }).findField('fingerprint');
+
+            // An empty $in would render `IN ()`, which is a syntax error.
+            if (!fingerprints.length) return [];
+
+            runtimeVersionFilter = { $in: [...new Set(fingerprints)] };
+        }
+
         const updates = await UpdateEntity.query()
-            .filter({ appId, channelId, status: { $nin: ['draft'] } })
+            .filter({
+                appId,
+                channelId,
+                status: { $nin: ['draft'] },
+                ...(platform ? { platform } : {}),
+                ...(runtimeVersionFilter ? { runtimeVersion: runtimeVersionFilter } : {})
+            })
             .orderBy('createdAt', 'desc')
             .orderBy('id', 'desc')
             .find();
@@ -134,7 +178,7 @@ export class UpdatesController {
 
     @http.POST()
     async create(request: HttpRequest, appId: string, channelId: string, body: HttpBody<IUpdateCreateInput>): Promise<IUpdateResponse> {
-        const platform = this.parseTargetPlatform(body.platform);
+        const platform = parseTargetPlatform(body.platform);
         const { app, channel, ciToken, ciJobData } = await this.validateCiJobForChannel(request, appId, channelId, 'Update creation');
 
         const ciTokenHash = hashCiToken(ciToken);
@@ -395,11 +439,6 @@ export class UpdatesController {
             supersededAt: update.supersededAt,
             supersededById: update.supersededById
         };
-    }
-
-    private parseTargetPlatform(platform: string): TargetPlatform {
-        if (platform === 'ios' || platform === 'android') return platform;
-        throw new HttpBadRequestError('platform must be ios or android');
     }
 
     private async validateCiJobForChannel(

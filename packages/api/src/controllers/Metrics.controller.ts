@@ -1,4 +1,4 @@
-import { http, HttpNotFoundError, HttpQueries } from '@deepkit/http';
+import { http, HttpNotFoundError, HttpQueries } from '@zyno-io/ts-server-foundation';
 import { keyBy } from 'lodash';
 
 import { UserAuthMiddleware } from '../accessories/AuthMiddleware.accessory';

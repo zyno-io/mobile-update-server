@@ -1,5 +1,5 @@
-import { http, HttpUnauthorizedError } from '@deepkit/http';
-import { createCachingParameterResolver, resolveEntityFromRequestJwt } from '@zyno-io/dk-server-foundation';
+import { http, HttpUnauthorizedError } from '@zyno-io/ts-server-foundation';
+import { createCachingParameterResolver, resolveEntityFromRequestJwt } from '@zyno-io/ts-server-foundation';
 
 import { UserEntity } from '../entities/User.entity';
 

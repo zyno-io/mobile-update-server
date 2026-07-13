@@ -1,6 +1,6 @@
-import { HttpRequest, HttpUnauthorizedError } from '@deepkit/http';
-import { Logger } from '@deepkit/logger';
-import { createAuthMiddleware, HttpDetailedAccessDeniedError, HttpMiddleware } from '@zyno-io/dk-server-foundation';
+import { HttpRequest, HttpUnauthorizedError } from '@zyno-io/ts-server-foundation';
+import { Logger } from '@zyno-io/ts-server-foundation';
+import { createAuthMiddleware, HttpAccessDeniedError, HttpMiddleware } from '@zyno-io/ts-server-foundation';
 import { createHash } from 'crypto';
 
 import { UpdateEntity } from '../entities/Update.entity';
@@ -11,7 +11,7 @@ export class UserAuthMiddleware extends createAuthMiddleware(UserEntity) {}
 
 export class AdminAuthMiddleware extends UserAuthMiddleware {
     async validateEntity(_request: HttpRequest, entity: UserEntity) {
-        if (!entity.isAdmin) throw new HttpDetailedAccessDeniedError('Insufficient permissions');
+        if (!entity.isAdmin) throw new HttpAccessDeniedError('Insufficient permissions');
     }
 }
 

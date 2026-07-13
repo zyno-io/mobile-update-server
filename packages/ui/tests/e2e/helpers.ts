@@ -7,6 +7,8 @@ import {
     appDetail,
     appMetrics,
     apps,
+    binaryBuilds,
+    binaryVersions,
     channelDetail,
     channels,
     ids,
@@ -77,7 +79,34 @@ export async function mockAppDetailRoutes(page: Page): Promise<void> {
 export async function mockChannelDetailRoutes(page: Page): Promise<void> {
     await mockAppDetailRoutes(page);
     await json(page, `**/api/apps/${ids.appId}/channels/${ids.channelId}`, channelDetail);
-    await json(page, `**/api/apps/${ids.appId}/channels/${ids.channelId}/updates`, updates);
+
+    // Must be a RegExp, not a glob: the channel screen now appends ?platform=&binaryVersion=, and a
+    // glob without a query segment would stop matching. The trailing (\?.*)?$ also keeps this from
+    // swallowing /updates/{id}, which mockUpdateDetailRoutes owns.
+    await page.route(new RegExp(`/api/apps/${ids.appId}/channels/${ids.channelId}/updates(\\?.*)?$`), route => {
+        const params = new URL(route.request().url()).searchParams;
+        const platform = params.get('platform');
+        const binaryVersion = params.get('binaryVersion');
+
+        // The real server maps binaryVersion → the build's fingerprints → matching runtimeVersions.
+        // These fixtures use the appVersion-policy shape (runtimeVersion === binaryVersion), so a
+        // direct comparison stands in for that join.
+        const filtered = updates.filter(u => (!platform || u.platform === platform) && (!binaryVersion || u.runtimeVersion === binaryVersion));
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(filtered) });
+    });
+
+    await page.route(new RegExp(`/api/apps/${ids.appId}/channels/${ids.channelId}/binary-builds/versions(\\?.*)?$`), route => {
+        const platform = new URL(route.request().url()).searchParams.get('platform') as 'ios' | 'android' | null;
+        const versions = platform ? (binaryVersions[platform] ?? []) : [];
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ versions }) });
+    });
+
+    await page.route(new RegExp(`/api/apps/${ids.appId}/channels/${ids.channelId}/binary-builds(\\?.*)?$`), route => {
+        const platform = new URL(route.request().url()).searchParams.get('platform') as 'ios' | 'android' | null;
+        const builds = platform ? (binaryBuilds[platform] ?? []) : [];
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(builds) });
+    });
+
     await page.route(new RegExp(`/api/apps/${ids.appId}/channels/${ids.channelId}/binary-builds/latest(\\?.*)?$`), route => {
         const platform = new URL(route.request().url()).searchParams.get('platform') as 'ios' | 'android' | null;
         const latest = platform ? (latestBinaries[platform] ?? null) : null;

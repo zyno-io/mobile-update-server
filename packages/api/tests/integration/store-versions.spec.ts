@@ -1,7 +1,7 @@
 import '../shared/setup';
-import { HttpRequest } from '@deepkit/http';
-import { uuid } from '@deepkit/type';
-import { createPersistedEntity, JWT, TestingHelpers } from '@zyno-io/dk-server-foundation';
+import { HttpRequest } from '@zyno-io/ts-server-foundation';
+import { uuid } from '@zyno-io/ts-server-foundation';
+import { createPersistedEntity, JWT, TestingHelpers } from '@zyno-io/ts-server-foundation';
 import { google } from 'googleapis';
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
@@ -74,10 +74,7 @@ describe('Google Play store lookup', () => {
 });
 
 function createGooglePlayLookup(): StoreLookupService {
-    return new StoreLookupService(
-        { GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: '{}' } as never,
-        { warn: () => {}, error: () => {} } as never
-    );
+    return new StoreLookupService({ GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: '{}' } as never, { warn: () => {}, error: () => {} } as never);
 }
 
 class StubLookup {

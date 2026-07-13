@@ -1,7 +1,7 @@
-import { http, HttpBadRequestError, HttpBody, HttpNotFoundError } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
-import { uuid } from '@deepkit/type';
-import { createEntity, createPersistedEntity, uuid7 } from '@zyno-io/dk-server-foundation';
+import { http, HttpBadRequestError, HttpBody, HttpNotFoundError } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { uuid } from '@zyno-io/ts-server-foundation';
+import { createEntity, createPersistedEntity, uuid7 } from '@zyno-io/ts-server-foundation';
 
 import { UserAuthMiddleware } from '../accessories/AuthMiddleware.accessory';
 import { ApiController } from '../accessories/Controller.accessory';

@@ -1,4 +1,4 @@
-import { DB } from '../database';
+import { Db } from '../database';
 import { IUserVcsSession, UserEntity } from '../entities/User.entity';
 import { IGitLabConfig, VcsIntegrationEntity } from '../entities/VcsIntegration.entity';
 import { VcsGitLabService } from './VcsGitLab.service';
@@ -28,7 +28,7 @@ export interface IVcsServiceImpl {
 }
 
 export class VcsService {
-    constructor(private db: DB) {}
+    constructor(private db: Db) {}
 
     async getProviderLoginUrl(providerId: string, redirectUri: string, state?: string): Promise<string> {
         return this.runWithProvider(providerId, p => p.getProviderLoginUrl(redirectUri, state));

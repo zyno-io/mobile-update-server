@@ -1,62 +1,43 @@
-openapi: 3.0.3
+openapi: 3.1.0
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
 info:
-  title: OpenAPI
-  contact: {}
-  license:
-    name: MIT
-  version: 0.0.1
-servers: []
+  title: "@zyno-io/mobile-update-server-api"
+  version: 0.1.0
 paths:
   /api/session/me:
     get:
+      operationId: getSessionGetIdentity
       tags:
         - session
-      operationId: getSessionGetIdentity
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ISessionResponse'
+                $ref: "#/components/schemas/ISessionResponse"
   /api/session/providers:
     get:
+      operationId: getSessionGetProviders
       tags:
         - session
-      operationId: getSessionGetProviders
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ISessionProvider'
+                  $ref: "#/components/schemas/ISessionProvider"
   /api/session/providers/{id}/login-url:
     get:
+      operationId: getSessionGetProviderLoginUrl
       tags:
         - session
-      operationId: getSessionGetProviderLoginUrl
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: redirectUri
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: returnPath
-          schema:
-            type: string
-          required: false
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -66,440 +47,444 @@ paths:
                     type: string
                 required:
                   - url
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: redirectUri
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: returnPath
+          in: query
+          required: false
+          schema:
+            type: string
   /api/session/onboarding-status:
     get:
+      operationId: getSessionGetOnboardingStatus
       tags:
         - session
-      operationId: getSessionGetOnboardingStatus
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IOnboardingStatusResponse'
+                $ref: "#/components/schemas/IOnboardingStatusResponse"
   /api/session/onboarding/vcs-integration:
     post:
+      operationId: postSessionCreateOnboardingVcsIntegration
       tags:
         - session
-      operationId: postSessionCreateOnboardingVcsIntegration
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IOnboardingVcsIntegrationInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PickVcsIntegrationEntity'
+                $ref: "#/components/schemas/PickVcsIntegrationEntity"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IOnboardingVcsIntegrationInput"
   /api/session/login:
     post:
+      operationId: postSessionLogin
       tags:
         - session
-      operationId: postSessionLogin
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ISessionLoginRequest'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ISessionLoginResponse'
+                $ref: "#/components/schemas/ISessionLoginResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ISessionLoginRequest"
   /api/apps:
     get:
+      operationId: getAppsIndex
       tags:
         - apps
-      operationId: getAppsIndex
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IAppListResponse'
+                  $ref: "#/components/schemas/IAppListResponse"
     post:
+      operationId: postAppsCreate
       tags:
         - apps
-      operationId: postAppsCreate
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IAppCreateInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IAppListResponse'
+                $ref: "#/components/schemas/IAppListResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IAppCreateInput"
   /api/apps/{id}:
     get:
+      operationId: getAppsShow
       tags:
         - apps
-      operationId: getAppsShow
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IAppDetailResponse'
-    put:
-      tags:
-        - apps
-      operationId: putAppsUpdate
+                $ref: "#/components/schemas/IAppDetailResponse"
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          required: true
           schema:
             type: string
+    put:
+      operationId: putAppsUpdate
+      tags:
+        - apps
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IAppListResponse"
+      parameters:
+        - name: id
+          in: path
           required: true
+          schema:
+            type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IAppUpdateInput'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IAppListResponse'
+              $ref: "#/components/schemas/IAppUpdateInput"
     delete:
+      operationId: deleteAppsDelete
       tags:
         - apps
-      operationId: deleteAppsDelete
+      responses:
+        "200":
+          description: OK
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          required: true
           schema:
             type: string
-          required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema: {}
   /api/apps/vcs-projects/search:
     get:
+      operationId: getAppsSearchVcsProjects
       tags:
         - apps
-      operationId: getAppsSearchVcsProjects
-      parameters:
-        - in: query
-          name: vcsId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: search
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IVcsProject'
+                  $ref: "#/components/schemas/IVcsProject"
+      parameters:
+        - name: vcsId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: true
+          schema:
+            type: string
   /api/apps/vcs-projects/resolve:
     get:
+      operationId: getAppsResolveVcsProject
       tags:
         - apps
-      operationId: getAppsResolveVcsProject
-      parameters:
-        - in: query
-          name: vcsId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: url
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IVcsProject'
+                $ref: "#/components/schemas/IVcsProject"
+      parameters:
+        - name: vcsId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
   /api/apps/{appId}/channels:
     get:
+      operationId: getChannelsIndex
       tags:
         - channels
-      operationId: getChannelsIndex
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IChannelResponse'
-    post:
-      tags:
-        - channels
-      operationId: postChannelsCreate
+                  $ref: "#/components/schemas/IChannelResponse"
       parameters:
-        - in: path
-          name: appId
+        - name: appId
+          in: path
+          required: true
           schema:
             type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IChannelCreateInput'
-        required: true
+    post:
+      operationId: postChannelsCreate
+      tags:
+        - channels
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IChannelResponse'
+                $ref: "#/components/schemas/IChannelResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IChannelCreateInput"
   /api/apps/{appId}/channels/{id}:
     get:
+      operationId: getChannelsShow
       tags:
         - channels
-      operationId: getChannelsShow
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IChannelResponse'
+                $ref: "#/components/schemas/IChannelResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
     put:
+      operationId: putChannelsUpdate
       tags:
         - channels
-      operationId: putChannelsUpdate
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IChannelResponse"
       parameters:
-        - in: path
-          name: appId
+        - name: appId
+          in: path
+          required: true
           schema:
             type: string
+        - name: id
+          in: path
           required: true
-        - in: path
-          name: id
           schema:
             type: string
-          required: true
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IChannelUpdateInput'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IChannelResponse'
+              $ref: "#/components/schemas/IChannelUpdateInput"
     delete:
+      operationId: deleteChannelsDelete
       tags:
         - channels
-      operationId: deleteChannelsDelete
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema: {}
+        "200":
+          description: OK
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
   /api/apps/{appId}/channels/{id}/staging-members:
     put:
+      operationId: putChannelsUpdateStagingMembers
       tags:
         - channels
-      operationId: putChannelsUpdateStagingMembers
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IStagingMembersUpdateInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IChannelResponse'
+                $ref: "#/components/schemas/IChannelResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IStagingMembersUpdateInput"
   /api/apps/{appId}/channels/{id}/canary-members:
     put:
+      operationId: putChannelsUpdateCanaryMembers
       tags:
         - channels
-      operationId: putChannelsUpdateCanaryMembers
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ICanaryMembersUpdateInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IChannelResponse'
+                $ref: "#/components/schemas/IChannelResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ICanaryMembersUpdateInput"
   /api/apps/{appId}/channels/{channelId}/updates:
     get:
+      operationId: getUpdatesIndex
       tags:
         - updates
-      operationId: getUpdatesIndex
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IUpdateResponse'
+                  $ref: "#/components/schemas/IUpdateResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TargetPlatform"
+        - name: binaryVersion
+          in: query
+          required: false
+          schema:
+            type: string
     post:
+      operationId: postUpdatesCreate
       tags:
         - updates
-      operationId: postUpdatesCreate
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IUpdateCreateInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IUpdateResponse'
+                $ref: "#/components/schemas/IUpdateResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IUpdateCreateInput"
   /api/apps/{appId}/channels/{channelId}/updates/{id}:
     get:
+      operationId: getUpdatesShow
       tags:
         - updates
-      operationId: getUpdatesShow
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -507,19 +492,26 @@ paths:
                 properties:
                   id:
                     type: string
+                    format: uuid
+                    pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
                   appId:
                     type: string
+                    format: uuid
+                    pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
                   channelId:
                     type: string
+                    format: uuid
+                    pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
                   platform:
-                    $ref: '#/components/schemas/TargetPlatform'
+                    $ref: "#/components/schemas/TargetPlatform"
                   runtimeVersion:
                     type: string
                   otaVersion:
-                    nullable: true
-                    type: string
+                    type:
+                      - string
+                      - "null"
                   status:
-                    $ref: '#/components/schemas/UpdateStatus'
+                    $ref: "#/components/schemas/UpdateStatus"
                   commitHash:
                     type: string
                   commitSubject:
@@ -530,19 +522,27 @@ paths:
                     type: string
                   createdAt:
                     type: string
+                    format: date-time
                   releasedAt:
-                    nullable: true
-                    type: string
+                    type:
+                      - string
+                      - "null"
+                    format: date-time
                   supersededAt:
-                    nullable: true
-                    type: string
+                    type:
+                      - string
+                      - "null"
+                    format: date-time
                   supersededById:
-                    nullable: true
-                    type: string
+                    type:
+                      - string
+                      - "null"
+                    format: uuid
+                    pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
                   assets:
                     type: array
                     items:
-                      $ref: '#/components/schemas/IUpdateAssetResponse'
+                      $ref: "#/components/schemas/IUpdateAssetResponse"
                 required:
                   - id
                   - appId
@@ -560,559 +560,584 @@ paths:
                   - supersededAt
                   - supersededById
                   - assets
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
   /api/apps/{appId}/channels/{channelId}/updates/promote-ci:
     post:
+      operationId: postUpdatesPromoteCurrentCiCommit
       tags:
         - updates
-      operationId: postUpdatesPromoteCurrentCiCommit
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IPromoteInput'
-        required: false
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IUpdateResponse'
+                  $ref: "#/components/schemas/IUpdateResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IPromoteInput"
   /api/apps/{appId}/channels/{channelId}/updates/{id}/assets:
     post:
+      operationId: postUpdatesUploadAsset
       tags:
         - updates
-      operationId: postUpdatesUploadAsset
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IUpdateAssetUploadInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IUpdateAssetResponse'
+                $ref: "#/components/schemas/IUpdateAssetResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/IUpdateAssetUploadInput"
   /api/apps/{appId}/channels/{channelId}/updates/{id}/finalize:
     post:
+      operationId: postUpdatesFinalize
       tags:
         - updates
-      operationId: postUpdatesFinalize
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IUpdateResponse'
+                $ref: "#/components/schemas/IUpdateResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
   /api/apps/{appId}/channels/{channelId}/updates/{id}/cancel-draft:
     post:
+      operationId: postUpdatesCancelDraft
       tags:
         - updates
-      operationId: postUpdatesCancelDraft
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                required:
-                  - ok
+              schema: {}
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
   /api/apps/{appId}/channels/{channelId}/updates/{id}/promote:
     post:
+      operationId: postUpdatesPromote
       tags:
         - updates
-      operationId: postUpdatesPromote
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IPromoteInput'
-        required: false
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IUpdateResponse'
+                $ref: "#/components/schemas/IUpdateResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IPromoteInput"
   /api/apps/{appId}/channels/{channelId}/updates/{id}/promote-ci:
     post:
+      operationId: postUpdatesPromoteCi
       tags:
         - updates
-      operationId: postUpdatesPromoteCi
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IUpdateResponse"
       parameters:
-        - in: path
-          name: appId
+        - name: appId
+          in: path
+          required: true
           schema:
             type: string
+        - name: channelId
+          in: path
           required: true
-        - in: path
-          name: channelId
           schema:
             type: string
+        - name: id
+          in: path
           required: true
-        - in: path
-          name: id
           schema:
             type: string
-          required: true
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IPromoteInput'
-        required: false
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IUpdateResponse'
+              $ref: "#/components/schemas/IPromoteInput"
   /api/apps/{appId}/channels/{channelId}/updates/{id}/cancel:
     post:
+      operationId: postUpdatesCancel
       tags:
         - updates
-      operationId: postUpdatesCancel
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                required:
-                  - ok
+              schema: {}
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
   /api/apps/{appId}/channels/{channelId}/updates/{id}/rollback:
     post:
+      operationId: postUpdatesRollback
       tags:
         - updates
-      operationId: postUpdatesRollback
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IUpdateResponse'
+                $ref: "#/components/schemas/IUpdateResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
   /api/apps/{appId}/channels/{channelId}/binary-builds:
     get:
+      operationId: getBinaryBuildsIndex
       tags:
         - binaryBuilds
-      operationId: getBinaryBuildsIndex
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: platform
-          schema:
-            $ref: '#/components/schemas/TargetPlatform'
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IBinaryBuildResponse'
+                  $ref: "#/components/schemas/IBinaryBuildResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TargetPlatform"
     post:
+      operationId: postBinaryBuildsCreate
       tags:
         - binaryBuilds
-      operationId: postBinaryBuildsCreate
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IBinaryBuildResponse"
       parameters:
-        - in: path
-          name: appId
+        - name: appId
+          in: path
+          required: true
           schema:
             type: string
+        - name: channelId
+          in: path
           required: true
-        - in: path
-          name: channelId
           schema:
             type: string
-          required: true
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IBinaryBuildCreateInput'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IBinaryBuildResponse'
+              $ref: "#/components/schemas/IBinaryBuildCreateInput"
   /api/apps/{appId}/channels/{channelId}/binary-builds/latest:
     get:
+      operationId: getBinaryBuildsLatest
       tags:
         - binaryBuilds
-      operationId: getBinaryBuildsLatest
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: platform
-          schema:
-            $ref: '#/components/schemas/TargetPlatform'
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   latest:
-                    nullable: true
-                    allOf:
-                      - $ref: '#/components/schemas/IBinaryBuildResponse'
+                    anyOf:
+                      - $ref: "#/components/schemas/IBinaryBuildResponse"
+                      - type: "null"
                 required:
                   - latest
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TargetPlatform"
+  /api/apps/{appId}/channels/{channelId}/binary-builds/versions:
+    get:
+      operationId: getBinaryBuildsVersions
+      tags:
+        - binaryBuilds
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - versions
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/TargetPlatform"
   /api/apps/{appId}/channels/{channelId}/binary-builds/latest-ci:
     get:
+      operationId: getBinaryBuildsLatestCi
       tags:
         - binaryBuilds
-      operationId: getBinaryBuildsLatestCi
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: platform
-          schema:
-            $ref: '#/components/schemas/TargetPlatform'
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   latest:
-                    nullable: true
-                    allOf:
-                      - $ref: '#/components/schemas/IBinaryBuildResponse'
+                    anyOf:
+                      - $ref: "#/components/schemas/IBinaryBuildResponse"
+                      - type: "null"
                 required:
                   - latest
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TargetPlatform"
   /api/apps/{appId}/channels/{channelId}/store-versions/latest:
     get:
+      operationId: getStoreVersionsLatest
       tags:
         - storeVersions
-      operationId: getStoreVersionsLatest
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: platform
-          schema:
-            $ref: '#/components/schemas/TargetPlatform'
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   latest:
-                    nullable: true
-                    allOf:
-                      - $ref: '#/components/schemas/IStoreVersionResponse'
+                    anyOf:
+                      - $ref: "#/components/schemas/IStoreVersionResponse"
+                      - type: "null"
                 required:
                   - latest
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/TargetPlatform"
   /api/manifest/{appId}/native-status:
     get:
+      operationId: getManifestNativeStatus
       tags:
         - manifest
-      operationId: getManifestNativeStatus
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: channelId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: platform
-          schema:
-            $ref: '#/components/schemas/TargetPlatform'
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/INativeUpdateStatusResponse'
+                $ref: "#/components/schemas/INativeUpdateStatusResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/TargetPlatform"
   /api/manifest/{appId}:
     get:
+      operationId: getManifestManifest
       tags:
         - manifest
-      operationId: getManifestManifest
+      responses:
+        "200":
+          description: OK
       parameters:
-        - in: path
-          name: appId
+        - name: appId
+          in: path
+          required: true
           schema:
             type: string
-          required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema: {}
   /api/assets/{id}:
     get:
+      operationId: getAssetsServeById
       tags:
         - assets
-      operationId: getAssetsServeById
+      responses:
+        "200":
+          description: OK
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          required: true
           schema:
             type: string
-          required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema: {}
   /api/assets/{appId}/{updateId}/{key}:
     get:
+      operationId: getAssetsServe
       tags:
         - assets
-      operationId: getAssetsServe
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: updateId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: key
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: platform
-          schema:
-            type: string
       responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema: {}
+        "200":
+          description: OK
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: false
+          schema:
+            type: string
   /api/apps/{appId}/metrics:
     get:
+      operationId: getMetricsAppMetrics
       tags:
         - metrics
-      operationId: getMetricsAppMetrics
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: channelId
-          schema:
-            type: string
-        - in: query
-          name: windowSeconds
-          schema:
-            type: number
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IMetricsResponse'
+                $ref: "#/components/schemas/IMetricsResponse"
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: windowSeconds
+          in: query
+          required: false
+          schema:
+            type: number
   /api/apps/{appId}/metrics/updates/{updateId}:
     get:
+      operationId: getMetricsUpdateMetrics
       tags:
         - metrics
-      operationId: getMetricsUpdateMetrics
-      parameters:
-        - in: path
-          name: appId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: updateId
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1128,128 +1153,124 @@ paths:
                   - totalDevicesOnChannel
                   - devicesOnUpdate
                   - pct
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
   /api/admin/vcs-integrations:
     get:
+      operationId: getVcsIntegrationsIndex
       tags:
         - vcsIntegrations
-      operationId: getVcsIntegrationsIndex
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IVcsIntegrationListResponse'
+                  $ref: "#/components/schemas/IVcsIntegrationListResponse"
     post:
+      operationId: postVcsIntegrationsCreate
       tags:
         - vcsIntegrations
-      operationId: postVcsIntegrationsCreate
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IVcsIntegrationCreateInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IVcsIntegrationListResponse'
+                $ref: "#/components/schemas/IVcsIntegrationListResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IVcsIntegrationCreateInput"
   /api/admin/vcs-integrations/{id}:
     get:
+      operationId: getVcsIntegrationsShow
       tags:
         - vcsIntegrations
-      operationId: getVcsIntegrationsShow
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IVcsIntegrationDetailResponse'
-    put:
-      tags:
-        - vcsIntegrations
-      operationId: putVcsIntegrationsUpdate
+                $ref: "#/components/schemas/IVcsIntegrationDetailResponse"
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          required: true
           schema:
             type: string
+    put:
+      operationId: putVcsIntegrationsUpdate
+      tags:
+        - vcsIntegrations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IVcsIntegrationListResponse"
+      parameters:
+        - name: id
+          in: path
           required: true
+          schema:
+            type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IVcsIntegrationUpdateInput'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IVcsIntegrationListResponse'
+              $ref: "#/components/schemas/IVcsIntegrationUpdateInput"
     delete:
+      operationId: deleteVcsIntegrationsDelete
       tags:
         - vcsIntegrations
-      operationId: deleteVcsIntegrationsDelete
+      responses:
+        "200":
+          description: OK
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          required: true
           schema:
             type: string
-          required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema: {}
   /api/admin/users:
     get:
+      operationId: getUsersIndex
       tags:
         - users
-      operationId: getUsersIndex
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IUserListResponse'
+                  $ref: "#/components/schemas/IUserListResponse"
   /api/admin/users/{id}:
     put:
+      operationId: putUsersUpdate
       tags:
         - users
-      operationId: putUsersUpdate
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IUserUpdateInput'
-        required: true
       responses:
-        '200':
-          description: ''
+        "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1262,23 +1283,18 @@ paths:
                 required:
                   - id
                   - isAdmin
-  /healthz:
-    get:
-      tags:
-        - healthcheck
-      operationId: getHealthcheckIndex
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  version:
-                    type: string
-                required:
-                  - version
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IUserUpdateInput"
 components:
   schemas:
     ISessionResponse:
@@ -1286,6 +1302,8 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
         isAdmin:
@@ -1299,6 +1317,8 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
       required:
@@ -1311,6 +1331,21 @@ components:
           type: boolean
       required:
         - isOnboarded
+    IOnboardingVcsIntegrationInput:
+      type: object
+      properties:
+        name:
+          type: string
+        platform:
+          type: string
+          enum:
+            - gitlab
+        config:
+          $ref: "#/components/schemas/IGitLabConfig"
+      required:
+        - name
+        - platform
+        - config
     IGitLabConfig:
       type: object
       properties:
@@ -1324,26 +1359,13 @@ components:
         - url
         - clientId
         - clientSecret
-    IOnboardingVcsIntegrationInput:
-      type: object
-      properties:
-        name:
-          type: string
-        platform:
-          type: string
-          enum:
-            - gitlab
-        config:
-          $ref: '#/components/schemas/IGitLabConfig'
-      required:
-        - name
-        - platform
-        - config
     PickVcsIntegrationEntity:
       type: object
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
         platform:
@@ -1374,30 +1396,25 @@ components:
       required:
         - jwt
         - returnPath
-    ProjectAccessLevel:
-      type: string
-      enum:
-        - none
-        - guest
-        - reporter
-        - developer
-        - maintainer
-        - owner
     IAppListResponse:
       type: object
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
         vcsId:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         projectPath:
           type: string
         vcsProjectId:
           type: number
         role:
-          $ref: '#/components/schemas/ProjectAccessLevel'
+          $ref: "#/components/schemas/ProjectAccessLevel"
       required:
         - id
         - name
@@ -1405,24 +1422,38 @@ components:
         - projectPath
         - vcsProjectId
         - role
+    ProjectAccessLevel:
+      enum:
+        - none
+        - guest
+        - reporter
+        - developer
+        - maintainer
+        - owner
+      type: string
     IAppDetailResponse:
       type: object
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
         vcsId:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         projectPath:
           type: string
         vcsProjectId:
           type: number
         role:
-          $ref: '#/components/schemas/ProjectAccessLevel'
+          $ref: "#/components/schemas/ProjectAccessLevel"
         webUrl:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
       required:
         - id
         - name
@@ -1478,42 +1509,56 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         appId:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
         branchName:
           type: string
         iosBundleId:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         androidPackageName:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         iosTrackingEnabled:
           type: boolean
         androidTrackingEnabled:
           type: boolean
         iosNativeUpdateRequiredAt:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
+          format: date-time
         androidNativeUpdateRequiredAt:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
+          format: date-time
         iosStoreUrl:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         androidStoreUrl:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         stagingMembers:
-          type: array
+          type:
+            - array
+            - "null"
           items:
-            $ref: '#/components/schemas/IRolloutMember'
+            $ref: "#/components/schemas/IRolloutMember"
         canaryMembers:
           type: array
           items:
-            $ref: '#/components/schemas/IRolloutMember'
+            $ref: "#/components/schemas/IRolloutMember"
       required:
         - id
         - appId
@@ -1529,6 +1574,23 @@ components:
         - androidStoreUrl
         - stagingMembers
         - canaryMembers
+    IRolloutMember:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/RolloutMemberType"
+        id:
+          type: string
+        comment:
+          type: string
+      required:
+        - type
+        - id
+        - comment
+    RolloutMemberType:
+      type: string
+      enum:
+        - device
     IChannelCreateInput:
       type: object
       properties:
@@ -1537,25 +1599,33 @@ components:
         branchName:
           type: string
         iosBundleId:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         androidPackageName:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         iosTrackingEnabled:
           type: boolean
         androidTrackingEnabled:
           type: boolean
         iosNativeUpdateRequiredAt:
-          nullable: true
-          oneOf:
-            - type: string
-            - type: string
+          anyOf:
+            - oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                - type: "null"
+            - type: "null"
         androidNativeUpdateRequiredAt:
-          nullable: true
-          oneOf:
-            - type: string
-            - type: string
+          anyOf:
+            - oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                - type: "null"
+            - type: "null"
       required:
         - name
     IChannelUpdateInput:
@@ -1566,112 +1636,93 @@ components:
         branchName:
           type: string
         iosBundleId:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         androidPackageName:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         iosTrackingEnabled:
           type: boolean
         androidTrackingEnabled:
           type: boolean
         iosNativeUpdateRequiredAt:
-          nullable: true
-          oneOf:
-            - type: string
-            - type: string
+          anyOf:
+            - oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                - type: "null"
+            - type: "null"
         androidNativeUpdateRequiredAt:
-          nullable: true
-          oneOf:
-            - type: string
-            - type: string
-    RolloutMemberType:
-      type: string
-      enum:
-        - device
-    IRolloutMember:
-      type: object
-      properties:
-        type:
-          $ref: '#/components/schemas/RolloutMemberType'
-        id:
-          type: string
-        comment:
-          type: string
-      required:
-        - type
-        - id
-        - comment
-    IRolloutMemberInput:
-      type: object
-      properties:
-        type:
-          $ref: '#/components/schemas/RolloutMemberType'
-        id:
-          type: string
-        comment:
-          type: string
-      required:
-        - type
-        - id
+          anyOf:
+            - oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                - type: "null"
+            - type: "null"
     IStagingMembersUpdateInput:
       type: object
       properties:
         stagingMembers:
           type: array
           items:
-            $ref: '#/components/schemas/IRolloutMemberInput'
+            $ref: "#/components/schemas/IRolloutMemberInput"
       required:
         - stagingMembers
+    IRolloutMemberInput:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/RolloutMemberType"
+        id:
+          type: string
+        comment:
+          type: string
+      required:
+        - type
+        - id
     ICanaryMembersUpdateInput:
       type: object
       properties:
         canaryMembers:
           type: array
           items:
-            $ref: '#/components/schemas/IRolloutMemberInput'
+            $ref: "#/components/schemas/IRolloutMemberInput"
       required:
         - canaryMembers
-    IPromoteInput:
-      type: object
-      properties:
-        target:
-          type: string
-          enum:
-            - canary
-            - released
     TargetPlatform:
-      type: string
       enum:
         - ios
         - android
-    UpdateStatus:
       type: string
-      enum:
-        - draft
-        - staging
-        - canary
-        - released
-        - canceled
-        - rolled-back
     IUpdateResponse:
       type: object
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         appId:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         channelId:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         platform:
-          $ref: '#/components/schemas/TargetPlatform'
+          $ref: "#/components/schemas/TargetPlatform"
         runtimeVersion:
           type: string
         otaVersion:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         status:
-          $ref: '#/components/schemas/UpdateStatus'
+          $ref: "#/components/schemas/UpdateStatus"
         commitHash:
           type: string
         commitSubject:
@@ -1682,15 +1733,23 @@ components:
           type: string
         createdAt:
           type: string
+          format: date-time
         releasedAt:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
+          format: date-time
         supersededAt:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
+          format: date-time
         supersededById:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
       required:
         - id
         - appId
@@ -1707,17 +1766,22 @@ components:
         - releasedAt
         - supersededAt
         - supersededById
-    AssetPlatform:
-      type: string
+    UpdateStatus:
       enum:
-        - ios
-        - android
-        - all
+        - draft
+        - staging
+        - canary
+        - released
+        - canceled
+        - rolled-back
+      type: string
     IUpdateAssetResponse:
       type: object
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         key:
           type: string
         contentType:
@@ -1733,7 +1797,7 @@ components:
         isLaunchAsset:
           type: boolean
         platform:
-          $ref: '#/components/schemas/AssetPlatform'
+          $ref: "#/components/schemas/AssetPlatform"
       required:
         - id
         - key
@@ -1744,62 +1808,54 @@ components:
         - size
         - isLaunchAsset
         - platform
-    RecordString:
-      type: object
-      properties: {}
+    AssetPlatform:
+      enum:
+        - ios
+        - android
+        - all
+      type: string
     IUpdateCreateInput:
       type: object
       properties:
         runtimeVersion:
           type: string
         otaVersion:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         platform:
-          $ref: '#/components/schemas/TargetPlatform'
+          $ref: "#/components/schemas/TargetPlatform"
         expoConfig:
-          $ref: '#/components/schemas/RecordString'
+          type: object
+          properties: {}
+          additionalProperties: true
         metadata:
-          $ref: '#/components/schemas/RecordString'
+          type: object
+          properties: {}
+          additionalProperties: true
       required:
         - runtimeVersion
         - platform
         - expoConfig
         - metadata
-    UploadedFile:
+    IPromoteInput:
       type: object
       properties:
-        validator:
-          nullable: true
-        size:
-          type: number
-        path:
+        target:
+          enum:
+            - canary
+            - released
           type: string
-        name:
-          nullable: true
-          type: string
-        type:
-          nullable: true
-          type: string
-        lastModifiedDate:
-          nullable: true
-          type: string
-      required:
-        - validator
-        - size
-        - path
-        - name
-        - type
-        - lastModifiedDate
     IUpdateAssetUploadInput:
       type: object
       properties:
         file:
-          $ref: '#/components/schemas/UploadedFile'
+          type: string
+          format: binary
         key:
           type: string
         platform:
-          $ref: '#/components/schemas/AssetPlatform'
+          $ref: "#/components/schemas/AssetPlatform"
         isLaunchAsset:
           type: boolean
         fileExtension:
@@ -1816,12 +1872,18 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         appId:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         channelId:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         platform:
-          $ref: '#/components/schemas/TargetPlatform'
+          $ref: "#/components/schemas/TargetPlatform"
         binaryVersion:
           type: string
         fingerprint:
@@ -1836,6 +1898,7 @@ components:
           type: string
         createdAt:
           type: string
+          format: date-time
       required:
         - id
         - appId
@@ -1852,7 +1915,7 @@ components:
       type: object
       properties:
         platform:
-          $ref: '#/components/schemas/TargetPlatform'
+          $ref: "#/components/schemas/TargetPlatform"
         binaryVersion:
           type: string
         fingerprint:
@@ -1865,11 +1928,12 @@ components:
       type: object
       properties:
         platform:
-          $ref: '#/components/schemas/TargetPlatform'
+          $ref: "#/components/schemas/TargetPlatform"
         version:
           type: string
         firstDetectedAt:
           type: string
+          format: date-time
       required:
         - platform
         - version
@@ -1878,23 +1942,27 @@ components:
       type: object
       properties:
         platform:
-          $ref: '#/components/schemas/TargetPlatform'
+          $ref: "#/components/schemas/TargetPlatform"
         channelId:
           type: string
         nativeUpdateRequiredAt:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         nativeUpdateRequired:
           type: boolean
         latestStoreVersion:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         latestStoreVersionDetectedAt:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
         storeUrl:
-          nullable: true
-          type: string
+          type:
+            - string
+            - "null"
       required:
         - platform
         - channelId
@@ -1920,15 +1988,17 @@ components:
             type: object
             properties:
               updateId:
-                nullable: true
-                type: string
+                type:
+                  - string
+                  - "null"
               count:
                 type: number
               pct:
                 type: number
               updateLabel:
-                nullable: true
-                type: string
+                type:
+                  - string
+                  - "null"
               isReleased:
                 type: boolean
             required:
@@ -1980,6 +2050,8 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
         platform:
@@ -1995,6 +2067,8 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          pattern: ^(?:urn:uuid:)?[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$
         name:
           type: string
         platform:
@@ -2002,7 +2076,7 @@ components:
           enum:
             - gitlab
         config:
-          $ref: '#/components/schemas/IGitLabConfig'
+          $ref: "#/components/schemas/IGitLabConfig"
       required:
         - id
         - name
@@ -2018,7 +2092,7 @@ components:
           enum:
             - gitlab
         config:
-          $ref: '#/components/schemas/IGitLabConfig'
+          $ref: "#/components/schemas/IGitLabConfig"
       required:
         - name
         - platform
@@ -2029,7 +2103,7 @@ components:
         name:
           type: string
         config:
-          $ref: '#/components/schemas/IGitLabConfig'
+          $ref: "#/components/schemas/IGitLabConfig"
     IUserListResponse:
       type: object
       properties:
@@ -2041,8 +2115,10 @@ components:
           type: boolean
         createdAt:
           type: string
+          format: date-time
         lastLoginAt:
           type: string
+          format: date-time
         vcsName:
           type: string
       required:

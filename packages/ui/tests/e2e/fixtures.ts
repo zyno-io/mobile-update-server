@@ -216,6 +216,42 @@ export const updates: IUpdateResponse[] = [
         releasedAt: '2026-03-27T11:00:00.000Z',
         supersededAt: null,
         supersededById: null
+    },
+    // Shipped against the previous binary (1.3.0). Hidden by the default "latest" filter, and
+    // only visible under "All versions" or an explicit 1.3.0 selection.
+    {
+        id: 'upd-6',
+        appId: APP_ID,
+        channelId: CHANNEL_ID,
+        platform: 'ios',
+        runtimeVersion: '1.3.0',
+        otaVersion: 'v139',
+        status: 'released',
+        commitHash: 'f6789012345678901234567890abcdef01234567',
+        commitSubject: 'Retry token refresh on 401',
+        commitAuthor: 'Lin Ortega',
+        ciJobId: 'job-9006',
+        createdAt: '2026-03-10T14:20:00.000Z',
+        releasedAt: '2026-03-10T15:05:00.000Z',
+        supersededAt: null,
+        supersededById: null
+    },
+    {
+        id: 'upd-7',
+        appId: APP_ID,
+        channelId: CHANNEL_ID,
+        platform: 'android',
+        runtimeVersion: '1.3.0',
+        otaVersion: 'v138',
+        status: 'released',
+        commitHash: '789012345678901234567890abcdef0123456789',
+        commitSubject: 'Cache store lookups for 24h',
+        commitAuthor: 'Sam Park',
+        ciJobId: 'job-9007',
+        createdAt: '2026-03-09T08:45:00.000Z',
+        releasedAt: '2026-03-09T10:00:00.000Z',
+        supersededAt: null,
+        supersededById: null
     }
 ];
 
@@ -293,6 +329,65 @@ export const latestBinaries: Record<'ios' | 'android', IBinaryBuildResponse> = {
         ciJobId: 'job-9002',
         createdAt: '2026-03-26T11:30:00.000Z'
     }
+};
+
+/** Newest-built first, matching what GET binary-builds/versions returns. */
+export const binaryVersions: Record<'ios' | 'android', string[]> = {
+    ios: ['1.4.0', '1.3.0'],
+    android: ['1.4.0', '1.3.0']
+};
+
+/**
+ * Build history per platform, newest first. iOS 1.4.0 appears twice — a rebuild produced a second
+ * fingerprint for the same binary version, which is exactly why a version maps to a *set* of
+ * fingerprints server-side.
+ */
+export const binaryBuilds: Record<'ios' | 'android', IBinaryBuildResponse[]> = {
+    ios: [
+        latestBinaries.ios,
+        {
+            id: 'bb-ios-2',
+            appId: APP_ID,
+            channelId: CHANNEL_ID,
+            platform: 'ios',
+            binaryVersion: '1.4.0',
+            fingerprint: 'fp-ios-4d3c2b1a0f9e8d7c6',
+            commitHash: 'c3d4e5f6789012345678901234567890abcdef01',
+            commitSubject: 'Localization updates for ES, PT-BR',
+            commitAuthor: 'Priya Shah',
+            ciJobId: 'job-8804',
+            createdAt: '2026-03-22T16:40:00.000Z'
+        },
+        {
+            id: 'bb-ios-3',
+            appId: APP_ID,
+            channelId: CHANNEL_ID,
+            platform: 'ios',
+            binaryVersion: '1.3.0',
+            fingerprint: 'fp-ios-1f2e3d4c5b6a79808',
+            commitHash: 'f6789012345678901234567890abcdef01234567',
+            commitSubject: 'Retry token refresh on 401',
+            commitAuthor: 'Lin Ortega',
+            ciJobId: 'job-8712',
+            createdAt: '2026-03-05T09:15:00.000Z'
+        }
+    ],
+    android: [
+        latestBinaries.android,
+        {
+            id: 'bb-and-2',
+            appId: APP_ID,
+            channelId: CHANNEL_ID,
+            platform: 'android',
+            binaryVersion: '1.3.0',
+            fingerprint: 'fp-and-9h8g7f6e5d4c3b2a1',
+            commitHash: '789012345678901234567890abcdef0123456789',
+            commitSubject: 'Cache store lookups for 24h',
+            commitAuthor: 'Sam Park',
+            ciJobId: 'job-8715',
+            createdAt: '2026-03-06T13:05:00.000Z'
+        }
+    ]
 };
 
 export const latestStoreVersions: Record<'ios' | 'android', IStoreVersionResponse> = {

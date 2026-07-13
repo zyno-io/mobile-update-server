@@ -1,10 +1,21 @@
 {
     "extends": "@tsconfig/node22/tsconfig.json",
-    "include": ["vite.config.*", "postcss.config.*"],
+    "include": [
+        "vite.config.*",
+        "postcss.config.*"
+    ],
     "compilerOptions": {
         "composite": true,
         "module": "ESNext",
         "moduleResolution": "Bundler",
-        "types": ["node"]
-    }
+        "types": [
+            "node"
+        ],
+        "plugins": [
+            {
+                "transform": "./node_modules/@zyno-io/ts-server-foundation/dist/src/type-compiler/index.cjs"
+            }
+        ]
+    },
+    "reflection": true
 }

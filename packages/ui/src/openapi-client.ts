@@ -19,7 +19,7 @@ configureVfOpenApiClient(client, {
 
     onError(err) {
         if (err instanceof OpenApiError) {
-            if (err.response.status === 401) {
+            if (err.response?.status === 401) {
                 localStorage.removeItem(LOCAL_STORAGE_AUTH_KEY);
                 useStore().sessionUser = null;
                 return err;

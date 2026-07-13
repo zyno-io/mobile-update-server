@@ -1,4 +1,4 @@
-import { createMySQLDatabase, MySQLDatabaseSession } from '@zyno-io/dk-server-foundation';
+import { createMySQLDatabase } from '@zyno-io/ts-server-foundation';
 
 import { AppEntity } from './entities/App.entity';
 import { BinaryBuildEntity } from './entities/BinaryBuild.entity';
@@ -10,7 +10,7 @@ import { UpdateAssetEntity } from './entities/UpdateAsset.entity';
 import { UserEntity } from './entities/User.entity';
 import { VcsIntegrationEntity } from './entities/VcsIntegration.entity';
 
-export class DB extends createMySQLDatabase({ enableLocksTable: true }, [
+export class Db extends createMySQLDatabase({ enableLocksTable: true }, [
     AppEntity,
     BinaryBuildEntity,
     ChannelEntity,
@@ -21,5 +21,3 @@ export class DB extends createMySQLDatabase({ enableLocksTable: true }, [
     UserEntity,
     VcsIntegrationEntity
 ]) {}
-
-export type DBSession = MySQLDatabaseSession;

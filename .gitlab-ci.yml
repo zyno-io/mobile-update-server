@@ -8,6 +8,21 @@ stages:
   - post-deploy
   - mirror
 
+
+prepare build:
+  needs: []
+  stage: .pre
+  image:
+    name: alpine/git
+    entrypoint: ['']
+  script: |
+    BUILD_VERSION=$(TZ=UTC0 git show -s --format=%cd --date=format-local:'%y.%-m%d.%-H%M' HEAD)
+    echo Build version: $BUILD_VERSION
+    echo "BUILD_VERSION=$BUILD_VERSION" >> ci.env
+  artifacts:
+    reports:
+      dotenv: ci.env
+
 .test-base:
   stage: test
   rules:
@@ -65,12 +80,12 @@ test:e2e:
 
 test:cli:
   extends: .test-base
-  image: node:22
+  image: node:24
   script: yarn workspace @zyno-io/mobile-update-server-cli test
 
 test:ui:types:
   extends: .test-base
-  image: node:22
+  image: node:24
   script:
     - yarn workspace @zyno-io/mobile-update-server-ui exec npx generate-openapi-client
     - yarn workspace @zyno-io/mobile-update-server-ui typecheck
@@ -99,24 +114,24 @@ visual regression test:
 .build-base:
   stage: build
   dependencies: []
-  image: quay.io/containers/buildah
+  image: ghcr.io/zyno-io/container-tooling:latest
   before_script:
     - |
 
       buildah login \
-        --username=${CI_REGISTRY_USER} \
-        --password=${CI_REGISTRY_PASSWORD} \
-        ${CI_REGISTRY}
+        --username="${CI_REGISTRY_USER}" \
+        --password="${CI_REGISTRY_PASSWORD}" \
+        "${CI_REGISTRY}"
 
 build:canary:
+  needs:
+    - prepare build
   extends: .build-base
   rules:
     - if: $CI_COMMIT_TITLE =~ /^v\d+\.\d+\.\d+$/
       when: never
     - if: $CI_COMMIT_BRANCH == "main"
   script: |
-    BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
-    BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
     BUILD_TAG=${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}
     echo "Build tag: ${BUILD_TAG}"
     buildah bud \
@@ -127,14 +142,14 @@ build:canary:
     buildah push ${CI_REGISTRY_IMAGE}:${BUILD_TAG}
 
 build:canary:cli:
+  needs:
+    - prepare build
   extends: .build-base
   rules:
     - if: $CI_COMMIT_TITLE =~ /^v\d+\.\d+\.\d+$/
       when: never
     - if: $CI_COMMIT_BRANCH == "main"
   script: |
-    BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
-    BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
     BUILD_TAG=${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}
     echo "Build tag: ${BUILD_TAG}"
     buildah bud \
@@ -148,17 +163,16 @@ build:canary:cli:
 publish:cli:npm:
   stage: deploy
   needs:
+    - prepare build
     - test:cli
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
-  image: node:22
+  image: node:24
   before_script:
     - corepack enable
     - yarn --immutable
   script: |
-    BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
-    BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
     echo "Publishing @zyno-io/mobile-update-server-cli@${BUILD_VERSION}"
     yarn workspace @zyno-io/mobile-update-server-cli build
     cd packages/cli
@@ -169,6 +183,7 @@ publish:cli:npm:
 deploy:
   stage: deploy
   needs:
+    - prepare build
     - build:canary
     - build:canary:cli
   rules:
@@ -177,10 +192,6 @@ deploy:
     - if: $CI_COMMIT_BRANCH == "main"
   image: ghcr.io/zyno-io/dag/cli:latest
   script:
-    - |
-      BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
-      BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
-      echo "Build version: ${BUILD_VERSION}"
     - cd resources/helm/chart
     - dag-deploy .
       --server ${DAG_SERVER_URL}

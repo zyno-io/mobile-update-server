@@ -12,7 +12,17 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "isolatedModules": true,
-        "types": ["node"]
+        "types": [
+            "node"
+        ],
+        "plugins": [
+            {
+                "transform": "./node_modules/@zyno-io/ts-server-foundation/dist/src/type-compiler/index.cjs"
+            }
+        ]
     },
-    "include": ["src/**/*"]
+    "include": [
+        "src/**/*"
+    ],
+    "reflection": true
 }

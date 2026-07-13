@@ -14,9 +14,9 @@
         "access": "public"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "ttsc",
         "start": "node dist/index.js",
-        "test": "tsc && node --test dist/*.spec.js",
+        "test": "ttsc && node --test dist/*.spec.js",
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
     },
     "dependencies": {
@@ -24,7 +24,8 @@
     },
     "devDependencies": {
         "@types/mime-types": "^3.0.1",
-        "@types/node": "^25.6.2",
-        "typescript": "~6.0"
+        "@types/node": "^26.1.1",
+        "ttsc": "0.18.4",
+        "typescript": "7.0.2"
     }
 }

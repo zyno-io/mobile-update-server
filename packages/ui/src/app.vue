@@ -48,7 +48,7 @@ onMounted(async () => {
         try {
             store.sessionUser = await dataFromAsync(SessionApi.getSessionGetIdentity());
         } catch (err) {
-            if (!(err instanceof OpenApiError && err.response.status === 401)) {
+            if (!(err instanceof OpenApiError && err.response?.status === 401)) {
                 console.error(err);
             }
         }

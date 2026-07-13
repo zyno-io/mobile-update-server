@@ -1,4 +1,4 @@
-import { http, HttpNotFoundError, HttpQueries, HttpResponse } from '@deepkit/http';
+import { http, HttpNotFoundError, HttpQueries, HttpResponse } from '@zyno-io/ts-server-foundation';
 
 import { AssetPlatform, UpdateAssetEntity } from '../entities/UpdateAsset.entity';
 import { S3Service } from '../services/S3.service';

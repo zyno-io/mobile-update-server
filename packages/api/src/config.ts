@@ -1,4 +1,4 @@
-import { BaseAppConfig } from '@zyno-io/dk-server-foundation';
+import { BaseAppConfig } from '@zyno-io/ts-server-foundation';
 
 export const DEFAULT_MAX_ASSET_SIZE_BYTES = 50 * 1024 * 1024;
 

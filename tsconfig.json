@@ -4,5 +4,13 @@
         {
             "path": "./packages/api/tsconfig.json"
         }
-    ]
+    ],
+    "compilerOptions": {
+        "plugins": [
+            {
+                "transform": "./node_modules/@zyno-io/ts-server-foundation/dist/src/type-compiler/index.cjs"
+            }
+        ]
+    },
+    "reflection": true
 }

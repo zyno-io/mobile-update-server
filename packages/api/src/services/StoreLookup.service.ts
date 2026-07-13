@@ -1,4 +1,4 @@
-import { ScopedLogger } from '@deepkit/logger';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 import { google } from 'googleapis';
 
 import { AppConfig } from '../config';

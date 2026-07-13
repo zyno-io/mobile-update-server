@@ -1,10 +1,11 @@
-import { http, HttpBadRequestError, HttpBody, HttpNotFoundError, HttpQueries, HttpRequest, HttpUnauthorizedError } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
-import { createPersistedEntity, uuid7 } from '@zyno-io/dk-server-foundation';
+import { http, HttpBody, HttpNotFoundError, HttpQueries, HttpRequest, HttpUnauthorizedError } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { createPersistedEntity, uuid7 } from '@zyno-io/ts-server-foundation';
 
 import { ICiJobData, UserAuthMiddleware, validateCiToken } from '../accessories/AuthMiddleware.accessory';
 import { ApiController } from '../accessories/Controller.accessory';
 import { GitLabProjectAuthService } from '../accessories/GitLabProjectAuth.accessory';
+import { optionalTargetPlatform, parseTargetPlatform } from '../accessories/Platform.accessory';
 import { AppEntity } from '../entities/App.entity';
 import { BinaryBuildEntity } from '../entities/BinaryBuild.entity';
 import { ChannelEntity } from '../entities/Channel.entity';
@@ -60,7 +61,7 @@ export class BinaryBuildsController {
         const { app } = await this.loadAppAndChannel(appId, channelId);
         await this.projectAuth.requireRole(user, app.vcsId, app.vcsProjectId, 'read');
 
-        const platformFilter = this.optionalTargetPlatform(query.platform);
+        const platformFilter = optionalTargetPlatform(query.platform);
         const builds = await BinaryBuildEntity.query()
             .filter({ appId, channelId, ...(platformFilter ? { platform: platformFilter } : {}) })
             .orderBy('createdAt', 'desc')
@@ -82,7 +83,7 @@ export class BinaryBuildsController {
         const { app } = await this.loadAppAndChannel(appId, channelId);
         await this.projectAuth.requireRole(user, app.vcsId, app.vcsProjectId, 'read');
 
-        const platformFilter = this.optionalTargetPlatform(query.platform);
+        const platformFilter = optionalTargetPlatform(query.platform);
         const build = await BinaryBuildEntity.query()
             .filter({ appId, channelId, ...(platformFilter ? { platform: platformFilter } : {}) })
             .orderBy('createdAt', 'desc')
@@ -90,6 +91,32 @@ export class BinaryBuildsController {
             .findOneOrUndefined();
 
         return { latest: build ? this.toResponse(build) : null };
+    }
+
+    // Distinct binary versions for one platform, newest-built first. Unlike index() this is
+    // uncapped, so old versions stay selectable in the UI's update filter even once the
+    // channel has more than index()'s 50 most recent builds.
+    @http.GET('versions')
+    @http.middleware(UserAuthMiddleware)
+    async versions(
+        appId: string,
+        channelId: string,
+        query: HttpQueries<{ platform: TargetPlatform }>,
+        user: UserEntity
+    ): Promise<{ versions: string[] }> {
+        const platform = parseTargetPlatform(query.platform);
+
+        const { app } = await this.loadAppAndChannel(appId, channelId);
+        await this.projectAuth.requireRole(user, app.vcsId, app.vcsProjectId, 'read');
+
+        const all = await BinaryBuildEntity.query()
+            .filter({ appId, channelId, platform })
+            .orderBy('createdAt', 'desc')
+            .orderBy('id', 'desc')
+            .findField('binaryVersion');
+
+        // Set preserves insertion order, so the first entry is the newest build's version.
+        return { versions: [...new Set(all)] };
     }
 
     @http.GET('latest-ci')
@@ -101,7 +128,7 @@ export class BinaryBuildsController {
     ): Promise<{ latest: IBinaryBuildResponse | null }> {
         await this.validateCiJobForChannel(request, appId, channelId, 'Latest binary build lookup');
 
-        const platformFilter = this.optionalTargetPlatform(query.platform);
+        const platformFilter = optionalTargetPlatform(query.platform);
         const build = await BinaryBuildEntity.query()
             .filter({ appId, channelId, ...(platformFilter ? { platform: platformFilter } : {}) })
             .orderBy('createdAt', 'desc')
@@ -113,7 +140,7 @@ export class BinaryBuildsController {
 
     @http.POST()
     async create(request: HttpRequest, appId: string, channelId: string, body: HttpBody<IBinaryBuildCreateInput>): Promise<IBinaryBuildResponse> {
-        const platform = this.parseTargetPlatform(body.platform);
+        const platform = parseTargetPlatform(body.platform);
         const { app, channel, ciJobData } = await this.validateCiJobForChannel(request, appId, channelId, 'Binary build creation');
 
         const build = await createPersistedEntity(BinaryBuildEntity, {
@@ -147,16 +174,6 @@ export class BinaryBuildsController {
             ciJobId: build.ciJobId,
             createdAt: build.createdAt
         };
-    }
-
-    private optionalTargetPlatform(platform: string | undefined): TargetPlatform | undefined {
-        if (platform === undefined) return undefined;
-        return this.parseTargetPlatform(platform);
-    }
-
-    private parseTargetPlatform(platform: string): TargetPlatform {
-        if (platform === 'ios' || platform === 'android') return platform;
-        throw new HttpBadRequestError('platform must be ios or android');
     }
 
     private async validateCiJobForChannel(

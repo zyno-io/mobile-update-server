@@ -1,6 +1,6 @@
-import { http, HttpBody, HttpNotFoundError } from '@deepkit/http';
-import { uuid } from '@deepkit/type';
-import { createEntity } from '@zyno-io/dk-server-foundation';
+import { http, HttpBody, HttpNotFoundError } from '@zyno-io/ts-server-foundation';
+import { uuid } from '@zyno-io/ts-server-foundation';
+import { createEntity } from '@zyno-io/ts-server-foundation';
 
 import { AdminAuthMiddleware } from '../accessories/AuthMiddleware.accessory';
 import { ApiController } from '../accessories/Controller.accessory';

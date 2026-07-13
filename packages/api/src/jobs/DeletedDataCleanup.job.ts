@@ -1,6 +1,6 @@
-import { eventDispatcher } from '@deepkit/event';
-import { onServerMainBootstrapDone, onServerShutdown } from '@deepkit/framework';
-import { ScopedLogger } from '@deepkit/logger';
+import { eventDispatcher } from '@zyno-io/ts-server-foundation';
+import { onServerMainBootstrapDone, onServerShutdown } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { AppEntity } from '../entities/App.entity';
 import { BinaryBuildEntity } from '../entities/BinaryBuild.entity';

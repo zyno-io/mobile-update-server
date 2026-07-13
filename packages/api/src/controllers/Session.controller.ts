@@ -1,11 +1,11 @@
-import { http, HttpBadRequestError, HttpBody, HttpQueries, HttpRequest, HttpResponse, HttpUnauthorizedError } from '@deepkit/http';
-import { uuid } from '@deepkit/type';
-import { createPersistedEntity, JWT, persistEntity } from '@zyno-io/dk-server-foundation';
+import { http, HttpBadRequestError, HttpBody, HttpQueries, HttpRequest, HttpResponse, HttpUnauthorizedError } from '@zyno-io/ts-server-foundation';
+import { uuid } from '@zyno-io/ts-server-foundation';
+import { createPersistedEntity, JWT, persistEntity } from '@zyno-io/ts-server-foundation';
 import { randomBytes } from 'crypto';
 
 import { ApiController } from '../accessories/Controller.accessory';
 import { AppConfig } from '../config';
-import { DB } from '../database';
+import { Db } from '../database';
 import { UserEntity } from '../entities/User.entity';
 import { IGitLabConfig, VcsIntegrationEntity } from '../entities/VcsIntegration.entity';
 import { VcsService } from '../services/Vcs.service';
@@ -45,7 +45,7 @@ const OAUTH_STATE_TTL_MINS = 10;
 @ApiController('/api/session')
 export class SessionController {
     constructor(
-        private db: DB,
+        private db: Db,
         private vcsService: VcsService,
         private appConfig: AppConfig
     ) {}

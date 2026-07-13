@@ -1,7 +1,7 @@
 import '../shared/setup';
-import { HttpRequest } from '@deepkit/http';
-import { uuid } from '@deepkit/type';
-import { createPersistedEntity, TestingHelpers, uuid7 } from '@zyno-io/dk-server-foundation';
+import { HttpRequest } from '@zyno-io/ts-server-foundation';
+import { uuid } from '@zyno-io/ts-server-foundation';
+import { createPersistedEntity, TestingHelpers, uuid7 } from '@zyno-io/ts-server-foundation';
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 

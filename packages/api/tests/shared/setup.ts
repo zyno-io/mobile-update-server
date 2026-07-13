@@ -1,4 +1,4 @@
-import { TestingHelpers } from '@zyno-io/dk-server-foundation';
+import { TestingHelpers } from '@zyno-io/ts-server-foundation';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
 export const ZERO_ID = '00000000-0000-0000-0000-000000000000';

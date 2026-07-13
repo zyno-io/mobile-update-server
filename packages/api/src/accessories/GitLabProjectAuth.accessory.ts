@@ -1,4 +1,4 @@
-import { HttpDetailedAccessDeniedError } from '@zyno-io/dk-server-foundation';
+import { HttpAccessDeniedError } from '@zyno-io/ts-server-foundation';
 
 import { UserEntity } from '../entities/User.entity';
 import { ProjectAccessLevel, VcsService } from '../services/Vcs.service';
@@ -65,7 +65,7 @@ export class GitLabProjectAuthService {
     async requireRole(user: UserEntity, vcsId: string, vcsProjectId: number, role: AppRole): Promise<ProjectAccessLevel> {
         const level = await this.getAccessLevel(user, vcsId, vcsProjectId);
         if (ROLE_RANK[level] < ROLE_RANK[APP_ROLE_REQUIREMENT[role]]) {
-            throw new HttpDetailedAccessDeniedError(`Insufficient GitLab project permissions (have=${level}, need=${role})`);
+            throw new HttpAccessDeniedError(`Insufficient GitLab project permissions (have=${level}, need=${role})`);
         }
         return level;
     }

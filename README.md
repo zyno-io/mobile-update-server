@@ -24,7 +24,7 @@ yarn dev:ui     # ui on :7936
 
 ## Packages
 
-- `packages/api` — Deepkit + `@zyno-io/dk-server-foundation` backend
+- `packages/api` — Deepkit + `@zyno-io/ts-server-foundation` backend
 - `packages/ui` — Vue 3 + `@zyno-io/vue-foundation` + Tailwind frontend
 - `packages/cli` — `mobile-update publish` / `mobile-update promote` / `mobile-update record-binary` for GitLab CI
 

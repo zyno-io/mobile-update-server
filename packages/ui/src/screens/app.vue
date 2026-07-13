@@ -37,7 +37,9 @@
                 >
                     <div>
                         <div class="name">{{ ch.name }}</div>
-                        <div class="meta">{{ channelBranch(ch) }} · {{ ch.stagingMembers.length }} staging, {{ ch.canaryMembers.length }} canary</div>
+                        <div class="meta">
+                            {{ channelBranch(ch) }} · {{ ch.stagingMembers?.length ?? 0 }} staging, {{ ch.canaryMembers.length }} canary
+                        </div>
                     </div>
                     <i class="fa fa-chevron-right" />
                 </div>

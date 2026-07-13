@@ -1,15 +1,15 @@
 import type { Algorithm } from 'fast-jwt';
 
-import { HttpBadRequestError } from '@deepkit/http';
-import { Logger, ScopedLogger } from '@deepkit/logger';
-import { assert } from '@deepkit/type';
-import { JWT, persistEntity, r } from '@zyno-io/dk-server-foundation';
+import { HttpBadRequestError } from '@zyno-io/ts-server-foundation';
+import { Logger, ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { assert } from '@zyno-io/ts-server-foundation';
+import { JWT, persistEntity, r } from '@zyno-io/ts-server-foundation';
 import axios from 'axios';
 import { createPublicKey } from 'crypto';
 
 import type { IVcsLoginSessionResponse, IVcsProject, IVcsServiceImpl, ProjectAccessLevel } from './Vcs.service';
 
-import { DB } from '../database';
+import { Db } from '../database';
 import { UserEntity } from '../entities/User.entity';
 import { IGitLabConfig } from '../entities/VcsIntegration.entity';
 
@@ -47,7 +47,7 @@ export class VcsGitLabService implements IVcsServiceImpl {
 
     constructor(
         private config: IGitLabConfig,
-        private db: DB
+        private db: Db
     ) {}
 
     async getProviderLoginUrl(redirectUri: string, state?: string): Promise<string> {

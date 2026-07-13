@@ -1,7 +1,7 @@
-import { http, HttpBadRequestError, HttpNotFoundError, HttpQueries, HttpRequest, HttpResponse } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
-import { uuid } from '@deepkit/type';
-import { createPersistedEntity } from '@zyno-io/dk-server-foundation';
+import { http, HttpBadRequestError, HttpNotFoundError, HttpQueries, HttpRequest, HttpResponse } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { uuid } from '@zyno-io/ts-server-foundation';
+import { createPersistedEntity } from '@zyno-io/ts-server-foundation';
 import { randomBytes } from 'crypto';
 
 import { AppEntity } from '../entities/App.entity';

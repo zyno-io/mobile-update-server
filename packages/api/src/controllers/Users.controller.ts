@@ -1,9 +1,9 @@
-import { http, HttpBadRequestError, HttpBody, HttpNotFoundError } from '@deepkit/http';
-import { persistEntity } from '@zyno-io/dk-server-foundation';
+import { http, HttpBadRequestError, HttpBody, HttpNotFoundError } from '@zyno-io/ts-server-foundation';
+import { persistEntity } from '@zyno-io/ts-server-foundation';
 
 import { AdminAuthMiddleware } from '../accessories/AuthMiddleware.accessory';
 import { ApiController } from '../accessories/Controller.accessory';
-import { DB } from '../database';
+import { Db } from '../database';
 import { UserEntity } from '../entities/User.entity';
 import { VcsIntegrationEntity } from '../entities/VcsIntegration.entity';
 
@@ -23,7 +23,7 @@ interface IUserUpdateInput {
 @ApiController('/api/admin/users')
 @http.middleware(AdminAuthMiddleware)
 export class UsersController {
-    constructor(private db: DB) {}
+    constructor(private db: Db) {}
 
     @http.GET()
     async index(): Promise<IUserListResponse[]> {
