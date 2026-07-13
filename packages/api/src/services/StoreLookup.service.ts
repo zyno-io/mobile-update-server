@@ -21,8 +21,13 @@ export class StoreLookupService {
     }
 
     async lookupApple(bundleId: string): Promise<IStoreVersionLookupResult | null> {
-        const country = encodeURIComponent(this.appConfig.APPLE_LOOKUP_COUNTRY || 'us');
-        const url = `https://itunes.apple.com/lookup?bundleId=${encodeURIComponent(bundleId)}&country=${country}`;
+        const url = new URL('https://itunes.apple.com/lookup');
+        url.searchParams.set('bundleId', bundleId);
+        url.searchParams.set('country', this.appConfig.APPLE_LOOKUP_COUNTRY || 'us');
+        // Apple's Akamai edge can retain stale lookup responses after a release goes
+        // live, even when the request asks caches to revalidate. A unique URL forces
+        // each poll to observe the current storefront response.
+        url.searchParams.set('_musCacheBust', Date.now().toString());
 
         const response = await fetch(url, { headers: { Accept: 'application/json' } });
         if (!response.ok) {

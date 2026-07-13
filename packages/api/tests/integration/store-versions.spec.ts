@@ -22,6 +22,32 @@ const APP_ID = '21212121-2121-2121-2121-212121212121';
 const CHANNEL_TRACKED = '22222222-2222-2222-2222-222222222222';
 const CHANNEL_DISABLED = '23232323-2323-2323-2323-232323232323';
 
+describe('Apple App Store lookup', () => {
+    test('cache-busts each lookup to avoid stale CDN responses', async t => {
+        t.mock.method(Date, 'now', () => 1_752_388_800_000);
+        const request = t.mock.method(
+            globalThis,
+            'fetch',
+            async () =>
+                new Response(JSON.stringify({ results: [{ version: '26.712.549', trackViewUrl: 'https://apps.apple.com/app/id1' }] }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                })
+        );
+        const lookup = new StoreLookupService({ APPLE_LOOKUP_COUNTRY: 'us' } as never, { warn: () => {} } as never);
+
+        const result = await lookup.lookupApple('app.zyno.talk');
+
+        assert.strictEqual(result?.version, '26.712.549');
+        assert.strictEqual(request.mock.callCount(), 1);
+        const url = new URL(String(request.mock.calls[0].arguments[0]));
+        assert.strictEqual(url.origin + url.pathname, 'https://itunes.apple.com/lookup');
+        assert.strictEqual(url.searchParams.get('bundleId'), 'app.zyno.talk');
+        assert.strictEqual(url.searchParams.get('country'), 'us');
+        assert.strictEqual(url.searchParams.get('_musCacheBust'), '1752388800000');
+    });
+});
+
 describe('Google Play store lookup', () => {
     test('ignores an in-review production release in favor of the published release', async t => {
         const request = t.mock.method(google.auth.GoogleAuth.prototype, 'request', async () => ({
