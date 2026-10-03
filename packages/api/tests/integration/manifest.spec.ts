@@ -15,6 +15,7 @@ import { UpdateEntity } from '../../src/entities/Update.entity';
 import { UpdateAssetEntity } from '../../src/entities/UpdateAsset.entity';
 import { UserEntity } from '../../src/entities/User.entity';
 import { VcsIntegrationEntity } from '../../src/entities/VcsIntegration.entity';
+import { IManifestBody } from '../../src/services/ManifestBuilder.service';
 import { startMockGitLab, TEST_CI_TOKEN, ZERO_ID } from '../shared/setup';
 
 const APP_ID = '11111111-1111-1111-1111-111111111111';
@@ -219,6 +220,66 @@ describe('manifest + native-status', () => {
                 type: 'rollBackToEmbedded',
                 parameters: { commitTime: '2026-10-03T09:00:43.000Z' }
             });
+        }
+    });
+
+    test('promoting a pre-rollback staging update republishes its immutable manifest for canary and release', async () => {
+        for (const restorePrior of [false, true]) {
+            await clearUpdates();
+            const prior = restorePrior ? await makeRelease('released', { createdAt: atSecond(Date.now() - 120_000) }) : null;
+            const revoked = await makeRelease('released', { createdAt: atSecond(Date.now() - 60_000) });
+            if (prior) {
+                prior.supersededAt = revoked.createdAt;
+                prior.supersededById = revoked.id;
+                await prior.save();
+            }
+            const staging = await makeRelease('staging', { createdAt: atSecond(Date.now() - 30_000), commitHash: '0'.repeat(40) });
+            const originalResponse = await facade.request(manifestRequest('staging-device-1'));
+            const originalManifest = multipartJson(originalResponse.bodyString);
+            assert.strictEqual(originalManifest.id, staging.id, 'the staging manifest has already been served');
+            const rollback = await rollbackRelease(revoked.id);
+            assert.strictEqual(rollback.statusCode, 200);
+            const rollbackResponse = await facade.request(manifestRequest(undefined, revoked.id));
+            const rollbackBody = multipartJson(rollbackResponse.bodyString);
+            const rollbackTime = new Date(rollbackBody.createdAt ?? rollbackBody.parameters.commitTime).getTime();
+
+            const jwt = await JWT.generate({ subject: USER_ID });
+            const canaryResponse = await facade.request(
+                HttpRequest.POST(`/api/apps/${APP_ID}/channels/${CHANNEL_ID}/updates/${staging.id}/promote`).header('authorization', `Bearer ${jwt}`)
+            );
+            assert.strictEqual(canaryResponse.statusCode, 200);
+            const promotedId = canaryResponse.json.id;
+            assert.notStrictEqual(promotedId, staging.id, 'a served manifest must get a new UUID when its timestamp advances');
+            assert.strictEqual(canaryResponse.json.status, 'canary');
+            const source = await UpdateEntity.query().filter({ id: staging.id }).findOne();
+            assert.strictEqual(source.createdAt.toISOString(), originalManifest.createdAt, 'do not mutate a cached manifest');
+            assert.strictEqual(source.supersededById, promotedId);
+            assert.ok(source.supersededAt);
+            const canaryManifestResponse = await facade.request(manifestRequest('canary-device-1', revoked.id));
+            const canaryManifest = multipartJson(canaryManifestResponse.bodyString);
+            assert.strictEqual(canaryManifest.id, promotedId);
+            assert.ok(new Date(canaryManifest.createdAt!).getTime() > rollbackTime, 'Expo must accept the promotion after rollback');
+            assert.ok(canaryManifest.launchAsset && originalManifest.launchAsset);
+            assert.strictEqual(canaryManifest.launchAsset.hash, originalManifest.launchAsset.hash, 'republish the same asset bytes');
+            assert.strictEqual(canaryManifest.launchAsset.key, originalManifest.launchAsset.key);
+
+            const releaseResponse = await facade.request(
+                restorePrior
+                    ? HttpRequest.POST(`/api/apps/${APP_ID}/channels/${CHANNEL_ID}/updates/promote-ci`).header(
+                          'authorization',
+                          `Bearer ${TEST_CI_TOKEN}`
+                      )
+                    : HttpRequest.POST(`/api/apps/${APP_ID}/channels/${CHANNEL_ID}/updates/${promotedId}/promote`).header(
+                          'authorization',
+                          `Bearer ${jwt}`
+                      )
+            );
+            assert.strictEqual(releaseResponse.statusCode, 200);
+            const released = restorePrior ? releaseResponse.json[0] : releaseResponse.json;
+            assert.strictEqual(released.id, promotedId, 'later promotion preserves the already-newer identity');
+            assert.strictEqual(released.status, 'released');
+            const releasedManifestResponse = await facade.request(manifestRequest(undefined, revoked.id));
+            assert.strictEqual(multipartJson(releasedManifestResponse.bodyString).id, promotedId);
         }
     });
 
@@ -553,7 +614,7 @@ async function setRequiredAt(platform: 'ios' | 'android', requiredAt: Date | nul
     await storeVersion.save();
 }
 
-function multipartJson(body: string): { id?: string; createdAt?: string; type?: string; parameters: { commitTime: string } } {
+function multipartJson(body: string): Partial<IManifestBody> & { type?: string; parameters: { commitTime: string } } {
     const json = body.split('\r\n').find(line => line.startsWith('{'));
     assert.ok(json, 'expected a JSON multipart part');
     return JSON.parse(json);

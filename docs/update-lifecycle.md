@@ -60,6 +60,8 @@ If there is no prior release in scope, the manifest endpoint serves Expo's `roll
 
 Republications retain their original source in `rollbackSourceId`. Rolling back a republication excludes that source from further restoration, allowing successive rollbacks to walk backward through release history.
 
+Finalizing a draft after rollback advances its creation time past the rollback. Promoting an already-served staging or canary update whose timestamp predates the rollback republishes its assets under a new UUID and timestamp; the source stays superseded with its original manifest intact. Promotion responses return the new identity, and subsequent promotions use that identity. This lets Expo accept a fix-forward even when it was prepared before rollback.
+
 Rollbacks accepted by older MUS versions can leave an older release restored without a new identity. The manifest endpoint serves an embedded rollback for that legacy state. A newer eligible update supersedes the directive. Rollback selection is scoped to app, channel, platform, and runtime; superseded staging/canary updates are excluded.
 
 The client must handle `isRollBackToEmbedded` separately from `isAvailable` and `isNew`: Expo sets both of the latter flags to `false` for an embedded rollback. `checkForUpdateAsync()` alone does not apply it; fetch and reload are required. Expo can reject a directive when there is no embedded bundle or its selection policy does not allow the rollback.
