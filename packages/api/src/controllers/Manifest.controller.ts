@@ -89,10 +89,40 @@ export class ManifestController {
         const channel = await ChannelEntity.query().filter({ id: parsed.channelId, appId: app.id, deletedAt: null }).findOneOrUndefined();
         if (!channel) throw new HttpBadRequestError('Invalid channel');
 
+        // Read the rollback marker before selecting the update. The rollback
+        // transaction publishes both together; this order cannot combine a stale
+        // candidate with a newer marker and spuriously choose embedded instead.
+        const rollback = await UpdateEntity.query()
+            .filter({
+                appId: app.id,
+                channelId: channel.id,
+                platform: parsed.platform,
+                runtimeVersion: parsed.runtimeVersion,
+                status: 'rolled-back',
+                supersededAt: { $ne: null }
+            })
+            .orderBy('supersededAt', 'desc')
+            .orderBy('id', 'desc')
+            .findOneOrUndefined();
         const update = await this.selectUpdate(app.id, channel, parsed);
+        let rollbackCommitTime: Date | null = null;
+        if (rollback) {
+            // Also covers rollbacks accepted by older MUS versions, which restored
+            // a stale manifest that Expo's chronological selection policy rejects.
+            // MySQL DATETIME has second precision; the directive must be strictly
+            // newer than the revoked update even for an immediate rollback.
+            const commitTime = new Date(Math.max(rollback.supersededAt!.getTime(), rollback.createdAt.getTime() + 1000));
+            if (!update || update.createdAt < commitTime) {
+                rollbackCommitTime = commitTime;
+            }
+        }
 
-        // Always record device check-in, even if we won't serve a new update.
-        await this.recordDeviceCheckIn(app.id, channel.id, parsed, update?.id ?? null);
+        // Always record check-in, including directives. An older candidate that
+        // was rejected in favor of embedded must not be recorded as served.
+        await this.recordDeviceCheckIn(app.id, channel.id, parsed, rollbackCommitTime ? null : (update?.id ?? null));
+        if (rollbackCommitTime) {
+            return this.sendDirective(response, parsed, this.manifestBuilder.buildRollBackToEmbeddedDirective(rollbackCommitTime));
+        }
 
         // Stored ids are lowercase (uuid7) and we lowercase incoming ones at parse time.
         if (!update || update.id === parsed.currentUpdateId) {
@@ -157,7 +187,8 @@ export class ManifestController {
                     channelId: channel.id,
                     platform: parsed.platform,
                     runtimeVersion: parsed.runtimeVersion,
-                    status: { $in: statuses }
+                    status: { $in: statuses },
+                    supersededAt: null
                 })
                 .orderBy('createdAt', 'desc')
                 .orderBy('id', 'desc')
@@ -208,6 +239,10 @@ export class ManifestController {
 
     private sendNoUpdateAvailable(response: HttpResponse, parsed: ParsedRequest): void {
         const directive = this.manifestBuilder.buildNoUpdateAvailableDirective();
+        return this.sendDirective(response, parsed, directive);
+    }
+
+    private sendDirective(response: HttpResponse, parsed: ParsedRequest, directive: object): void {
         const directiveJson = JSON.stringify(directive);
 
         const accept = parsed.accept;

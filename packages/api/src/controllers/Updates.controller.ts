@@ -226,7 +226,8 @@ export class UpdatesController {
                 appId,
                 channelId,
                 commitHash: ciJobData.commitHash,
-                status: { $in: eligibleStatuses }
+                status: { $in: eligibleStatuses },
+                supersededAt: null
             })
             .orderBy('createdAt', 'desc')
             .orderBy('id', 'desc')
@@ -345,6 +346,12 @@ export class UpdatesController {
             if (!fresh) throw new HttpNotFoundError();
             if (fresh.status !== 'draft') throw new HttpBadRequestError('update is not in draft state');
 
+            // A draft has never been served, so its manifest timestamp can still
+            // advance. Ensure a fix-forward finalized after rollback is newer
+            // than the directive, including same-second MySQL timestamps.
+            const rollbackTime = await this.getLatestRollbackTime(fresh, session);
+            if (rollbackTime !== null && fresh.createdAt.getTime() <= rollbackTime) fresh.createdAt = new Date(rollbackTime + 1000);
+
             fresh.status = initialTier;
             if (initialTier === 'released') fresh.releasedAt = new Date();
             fresh.ciTokenHash = null;
@@ -354,6 +361,7 @@ export class UpdatesController {
 
             // Mirror back so callers using `update` see fresh state.
             update.status = fresh.status;
+            update.createdAt = fresh.createdAt;
             update.releasedAt = fresh.releasedAt;
             update.ciTokenHash = fresh.ciTokenHash;
         });
@@ -492,18 +500,79 @@ export class UpdatesController {
             }
 
             const next = this.nextTier(fresh.status, target, channel);
+            const rollbackTime = await this.getLatestRollbackTime(fresh, session);
+            let promoted = fresh;
+            if (rollbackTime !== null && fresh.createdAt.getTime() <= rollbackTime) {
+                // Staging/canary manifests may already be cached by devices. A
+                // promotion after rollback needs a newer immutable identity too.
+                const promotedAt = new Date(Math.max(Date.now(), rollbackTime + 1000));
+                promoted = await this.republishUpdate(
+                    fresh,
+                    { status: next, createdAt: promotedAt, releasedAt: next === 'released' ? promotedAt : fresh.releasedAt, promotedById },
+                    session
+                );
+                fresh.supersededAt = promotedAt;
+                fresh.supersededById = promoted.id;
+                await persistEntity(fresh, session);
+            } else {
+                promoted.status = next;
+                promoted.promotedById = promotedById;
+                if (next === 'released') promoted.releasedAt = new Date();
+                await persistEntity(promoted, session);
+            }
 
-            fresh.status = next;
-            fresh.promotedById = promotedById;
-            if (next === 'released') fresh.releasedAt = new Date();
-            await persistEntity(fresh, session);
+            await this.supersedePriorInTier(promoted, next, session);
 
-            await this.supersedePriorInTier(fresh, next, session);
-
-            update.status = fresh.status;
-            update.promotedById = fresh.promotedById;
-            update.releasedAt = fresh.releasedAt;
+            // Return the new identity when promotion republishes cached assets.
+            update.id = promoted.id;
+            update.createdAt = promoted.createdAt;
+            update.status = promoted.status;
+            update.promotedById = promoted.promotedById;
+            update.releasedAt = promoted.releasedAt;
+            update.rollbackSourceId = promoted.rollbackSourceId;
         });
+    }
+
+    private async getLatestRollbackTime(update: UpdateEntity, session: DatabaseSession): Promise<number | null> {
+        const rollback = await session
+            .query(UpdateEntity)
+            .filter({
+                appId: update.appId,
+                channelId: update.channelId,
+                platform: update.platform,
+                runtimeVersion: update.runtimeVersion,
+                status: 'rolled-back',
+                supersededAt: { $ne: null }
+            })
+            .orderBy('supersededAt', 'desc')
+            .orderBy('id', 'desc')
+            .findOneOrUndefined();
+        return rollback ? Math.max(rollback.supersededAt!.getTime(), rollback.createdAt.getTime() + 1000) : null;
+    }
+
+    private async republishUpdate(
+        source: UpdateEntity,
+        changes: Pick<UpdateEntity, 'status' | 'createdAt' | 'releasedAt' | 'promotedById'>,
+        session: DatabaseSession
+    ): Promise<UpdateEntity> {
+        const republished = await createPersistedEntity(
+            UpdateEntity,
+            {
+                ...source,
+                ...changes,
+                id: uuid7(),
+                ciTokenHash: null,
+                supersededAt: null,
+                supersededById: null,
+                rollbackSourceId: source.rollbackSourceId ?? source.id
+            },
+            session
+        );
+        const assets = await session.query(UpdateAssetEntity).filter({ updateId: source.id }).find();
+        for (const asset of assets) {
+            await createPersistedEntity(UpdateAssetEntity, { ...asset, id: uuid7(), updateId: republished.id }, session);
+        }
+        return republished;
     }
 
     private tierLockKey(u: Pick<UpdateEntity, 'channelId' | 'platform' | 'runtimeVersion'>): MutexKey[] {
@@ -558,31 +627,47 @@ export class UpdatesController {
                 throw new HttpBadRequestError('this release has already been superseded; rollback is only valid on the live release');
             }
 
-            fresh.status = 'rolled-back';
-            fresh.supersededAt = new Date();
-            fresh.supersededById = null;
-            await persistEntity(fresh, session);
-
-            // Auto-revert: bring back the most-recently-superseded release in the same scope.
-            // Its supersededById may point at this just-rolled-back update or at a chain of
-            // earlier ones — either way, the freshest by createdAt wins.
-            const candidate = await session
+            const history = await session
                 .query(UpdateEntity)
                 .filter({
                     appId,
                     channelId,
                     platform: fresh.platform,
                     runtimeVersion: fresh.runtimeVersion,
-                    status: 'released',
-                    supersededAt: { $ne: null }
+                    status: { $in: ['released', 'rolled-back'] }
                 })
                 .orderBy('createdAt', 'desc')
                 .orderBy('id', 'desc')
-                .findOneOrUndefined();
+                .find();
+            const previousRollbackTime = history.reduce(
+                (latest, u) =>
+                    u.status === 'rolled-back' && u.supersededAt ? Math.max(latest, u.supersededAt.getTime(), u.createdAt.getTime() + 1000) : latest,
+                0
+            );
+            const rollbackAt = new Date(Math.max(Date.now(), fresh.createdAt.getTime() + 1000, previousRollbackTime + 1000));
+            fresh.status = 'rolled-back';
+            fresh.supersededAt = rollbackAt;
+            fresh.supersededById = null;
+            await persistEntity(fresh, session);
+
+            // A republished release can itself be rolled back. Exclude its source
+            // and every republication of that source, so repeated rollback walks
+            // backward through releases instead of restoring the same bytes.
+            const withdrawnSources = new Set(history.filter(u => u.status === 'rolled-back').map(u => u.rollbackSourceId ?? u.id));
+            withdrawnSources.add(fresh.rollbackSourceId ?? fresh.id);
+            const candidate = history.find(
+                u => u.status === 'released' && u.supersededAt !== null && !withdrawnSources.has(u.rollbackSourceId ?? u.id)
+            );
 
             if (candidate) {
-                candidate.supersededAt = null;
-                candidate.supersededById = null;
+                // Expo only accepts newer manifests and caches them by immutable
+                // UUID. Restore the bytes with a new identity and commit time.
+                const restored = await this.republishUpdate(
+                    candidate,
+                    { status: 'released', createdAt: rollbackAt, releasedAt: rollbackAt, promotedById: user.id },
+                    session
+                );
+                candidate.supersededById = restored.id;
                 await persistEntity(candidate, session);
             }
 

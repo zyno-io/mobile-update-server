@@ -29,4 +29,6 @@ export class UpdateEntity extends BaseEntity {
     promotedById!: UuidString | null;
     supersededAt!: Date | null;
     supersededById!: UuidString | null;
+    /** Original update whose assets were republished after a rollback. */
+    rollbackSourceId: UuidString | null = null;
 }
