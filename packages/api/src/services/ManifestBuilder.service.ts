@@ -24,6 +24,11 @@ export interface INoUpdateAvailableDirective {
     type: 'noUpdateAvailable';
 }
 
+export interface IRollBackToEmbeddedDirective {
+    type: 'rollBackToEmbedded';
+    parameters: { commitTime: string };
+}
+
 export class ManifestBuilderService {
     constructor(private appConfig: AppConfig) {}
 
@@ -54,6 +59,10 @@ export class ManifestBuilderService {
 
     buildNoUpdateAvailableDirective(): INoUpdateAvailableDirective {
         return { type: 'noUpdateAvailable' };
+    }
+
+    buildRollBackToEmbeddedDirective(commitTime: Date): IRollBackToEmbeddedDirective {
+        return { type: 'rollBackToEmbedded', parameters: { commitTime: commitTime.toISOString() } };
     }
 
     private toManifestAsset(asset: UpdateAssetEntity): IManifestAsset {

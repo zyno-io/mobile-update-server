@@ -654,7 +654,7 @@ async function rollback(update: IUpdateResponse) {
     if (!isLiveRelease(update)) return;
     const ok = await showConfirmDestroy(
         'Roll back release',
-        `Roll back ${primaryLabel(update)}? Devices will revert to the prior release for this runtime on next check-in.`
+        `Roll back ${primaryLabel(update)}? Devices will load the prior release, or the embedded bundle if none remains, after fetching and restarting.`
     );
     if (!ok) return;
     try {

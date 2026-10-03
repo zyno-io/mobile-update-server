@@ -1,10 +1,11 @@
 import '../shared/setup';
 import { HttpRequest } from '@zyno-io/ts-server-foundation';
 import { uuid } from '@zyno-io/ts-server-foundation';
-import { createPersistedEntity, TestingHelpers, uuid7 } from '@zyno-io/ts-server-foundation';
+import { createPersistedEntity, JWT, TestingHelpers, uuid7 } from '@zyno-io/ts-server-foundation';
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 
+import { hashCiToken } from '../../src/accessories/AuthMiddleware.accessory';
 import { CoreAppOptions } from '../../src/app';
 import { AppEntity } from '../../src/entities/App.entity';
 import { ChannelEntity } from '../../src/entities/Channel.entity';
@@ -12,12 +13,14 @@ import { DeviceStateEntity } from '../../src/entities/DeviceState.entity';
 import { StoreVersionEntity } from '../../src/entities/StoreVersion.entity';
 import { UpdateEntity } from '../../src/entities/Update.entity';
 import { UpdateAssetEntity } from '../../src/entities/UpdateAsset.entity';
+import { UserEntity } from '../../src/entities/User.entity';
 import { VcsIntegrationEntity } from '../../src/entities/VcsIntegration.entity';
-import { startMockGitLab, ZERO_ID } from '../shared/setup';
+import { startMockGitLab, TEST_CI_TOKEN, ZERO_ID } from '../shared/setup';
 
 const APP_ID = '11111111-1111-1111-1111-111111111111';
 const CHANNEL_ID = '22222222-2222-2222-2222-222222222222';
 const RUNTIME = '1.0.0';
+const USER_ID = '33333333-3333-3333-3333-333333333333';
 const IOS_STORE_IDENTIFIER = 'com.example.manifest';
 
 describe('manifest + native-status', () => {
@@ -164,6 +167,156 @@ describe('manifest + native-status', () => {
         assert.strictEqual(state.currentUpdateId, released.id);
     });
 
+    test('superseded canary updates are excluded from manifest selection', async () => {
+        await clearUpdates();
+        const released = await makeRelease('released');
+        const canary = await makeRelease('canary');
+        canary.supersededAt = new Date();
+        await canary.save();
+        const response = await facade.request(manifestRequest('canary-device-1'));
+        assert.strictEqual(multipartJson(response.bodyString).id, released.id);
+    });
+
+    test('a draft finalized after rollback gets a manifest timestamp newer than the directive', async () => {
+        await clearUpdates();
+        const revoked = await makeRelease('released', { createdAt: atSecond(Date.now()) });
+        const draft = await makeRelease('released', { createdAt: revoked.createdAt });
+        draft.status = 'draft';
+        draft.ciTokenHash = hashCiToken(TEST_CI_TOKEN);
+        await draft.save();
+        const rollback = await rollbackRelease(revoked.id);
+        assert.strictEqual(rollback.statusCode, 200);
+        const directiveResponse = await facade.request(manifestRequest('staging-device-1', revoked.id));
+        const directive = multipartJson(directiveResponse.bodyString);
+        assert.strictEqual(directive.type, 'rollBackToEmbedded');
+        const finalized = await facade.request(
+            HttpRequest.POST(`/api/apps/${APP_ID}/channels/${CHANNEL_ID}/updates/${draft.id}/finalize`).header(
+                'authorization',
+                `Bearer ${TEST_CI_TOKEN}`
+            )
+        );
+        assert.strictEqual(finalized.statusCode, 200);
+        const response = await facade.request(manifestRequest('staging-device-1', revoked.id));
+        const manifest = multipartJson(response.bodyString);
+        assert.strictEqual(manifest.id, draft.id);
+        assert.ok(new Date(manifest.createdAt!).getTime() > new Date(directive.parameters.commitTime).getTime());
+    });
+
+    test('legacy rollback serves a stable embedded directive instead of the restored older manifest', async () => {
+        await clearUpdates();
+        const prior = await makeRelease('released', { createdAt: new Date('2026-08-17T06:22:09Z') });
+        const revoked = await makeRelease('released', { createdAt: new Date('2026-08-20T04:00:00Z') });
+        revoked.status = 'rolled-back';
+        revoked.supersededAt = new Date('2026-10-03T09:00:43Z');
+        await revoked.save();
+
+        for (const currentId of [revoked.id.toUpperCase(), prior.id, undefined]) {
+            const response = await facade.request(manifestRequest('rollback-device', currentId));
+            assert.strictEqual(response.statusCode, 200);
+            assert.match(response.bodyString, /name="directive"/);
+            assert.doesNotMatch(response.bodyString, /name="manifest"/);
+            assert.deepStrictEqual(multipartJson(response.bodyString), {
+                type: 'rollBackToEmbedded',
+                parameters: { commitTime: '2026-10-03T09:00:43.000Z' }
+            });
+        }
+    });
+
+    test('rollback without a prior release serves a directive newer than an immediate release', async () => {
+        await clearUpdates();
+        const revoked = await makeRelease('released', { createdAt: atSecond(Date.now()) });
+        const rollback = await rollbackRelease(revoked.id);
+        assert.strictEqual(rollback.statusCode, 200);
+        const response = await facade.request(manifestRequest('rollback-device', revoked.id));
+        const directive = multipartJson(response.bodyString);
+        assert.strictEqual(directive.type, 'rollBackToEmbedded');
+        assert.ok(new Date(directive.parameters.commitTime).getTime() > revoked.createdAt.getTime());
+        const repeated = await facade.request(manifestRequest(undefined, revoked.id));
+        assert.deepStrictEqual(multipartJson(repeated.bodyString), directive);
+
+        const jsonResponse = await facade.request(manifestRequest().header('accept', 'application/json'));
+        assert.deepStrictEqual(jsonResponse.json, directive);
+        const device = await DeviceStateEntity.query().filter({ appId: APP_ID, deviceId: 'rollback-device' }).findOne();
+        assert.strictEqual(device.currentUpdateId, revoked.id);
+        const duplicate = await rollbackRelease(revoked.id);
+        assert.strictEqual(duplicate.statusCode, 400);
+    });
+
+    test('rollback is scoped to app, channel, platform and runtime; a newer fix supersedes it', async () => {
+        await clearUpdates();
+        const revoked = await makeRelease('released', { createdAt: atSecond(Date.now() - 60_000) });
+        const rollbackResponse = await rollbackRelease(revoked.id);
+        assert.strictEqual(rollbackResponse.statusCode, 200);
+        for (const request of [
+            manifestRequest().header('expo-platform', 'android'),
+            manifestRequest().header('expo-runtime-version', 'another-runtime')
+        ]) {
+            const response = await facade.request(request);
+            assert.strictEqual(multipartJson(response.bodyString).type, 'noUpdateAvailable');
+        }
+        // Change each scope dimension independently, keeping platform/runtime
+        // equal; a marker from either must not override this channel's fix-forward.
+        for (const overrides of [{ channelId: uuid() }, { appId: uuid() }]) {
+            const other = await makeRelease('released', overrides);
+            other.status = 'rolled-back';
+            other.supersededAt = new Date(Date.now() + 86_400_000);
+            await other.save();
+        }
+        const withdrawn = await UpdateEntity.query().filter({ id: revoked.id }).findOne();
+        const forward = await makeRelease('released', { createdAt: new Date(withdrawn.supersededAt!.getTime() + 1000) });
+        const response = await facade.request(manifestRequest(undefined, revoked.id));
+        assert.strictEqual(multipartJson(response.bodyString).id, forward.id);
+    });
+
+    test('rollback republishes prior bytes with a new UUID and timestamp, then walks backward on further rollback', async () => {
+        await clearUpdates();
+        const oldest = await makeRelease('released', { createdAt: atSecond(Date.now() - 180_000) });
+        const prior = await makeRelease('released', { createdAt: atSecond(Date.now() - 120_000), otaVersion: 'prior-version' });
+        const revoked = await makeRelease('released', { createdAt: atSecond(Date.now() - 60_000) });
+        for (const update of [oldest, prior]) {
+            update.supersededAt = revoked.createdAt;
+            update.supersededById = revoked.id;
+            await update.save();
+        }
+        const originalAssets = await UpdateAssetEntity.query().filter({ updateId: prior.id }).orderBy('platform').find();
+        const rollbackResponse = await rollbackRelease(revoked.id);
+        assert.strictEqual(rollbackResponse.statusCode, 200);
+        const restored = await UpdateEntity.query().filter({ status: 'released', supersededAt: null, channelId: CHANNEL_ID }).findOne();
+        assert.notStrictEqual(restored.id, prior.id);
+        assert.ok(restored.createdAt > revoked.createdAt, 'Expo requires a strictly newer manifest');
+        assert.strictEqual(restored.rollbackSourceId, prior.id);
+        assert.strictEqual(restored.otaVersion, prior.otaVersion);
+        assert.deepStrictEqual(restored.expoConfigJson, prior.expoConfigJson);
+        const restoredAssets = await UpdateAssetEntity.query().filter({ updateId: restored.id }).orderBy('platform').find();
+        assert.strictEqual(restoredAssets.length, originalAssets.length);
+        for (let i = 0; i < restoredAssets.length; i++) {
+            assert.notStrictEqual(restoredAssets[i].id, originalAssets[i].id);
+            assert.strictEqual(restoredAssets[i].s3Key, originalAssets[i].s3Key);
+            assert.strictEqual(restoredAssets[i].sha256, originalAssets[i].sha256);
+        }
+        const response = await facade.request(manifestRequest(undefined, revoked.id));
+        assert.strictEqual(multipartJson(response.bodyString).id, restored.id);
+        const current = await facade.request(manifestRequest(undefined, restored.id.toUpperCase()));
+        assert.strictEqual(multipartJson(current.bodyString).type, 'noUpdateAvailable');
+
+        const nextRollback = await rollbackRelease(restored.id);
+        assert.strictEqual(nextRollback.statusCode, 200);
+        const next = await UpdateEntity.query().filter({ status: 'released', supersededAt: null, channelId: CHANNEL_ID }).findOne();
+        assert.strictEqual(next.rollbackSourceId, oldest.id, 'do not restore the same prior bytes again');
+        assert.ok(next.createdAt > restored.createdAt);
+        const lastRollback = await rollbackRelease(next.id);
+        assert.strictEqual(lastRollback.statusCode, 200);
+        const embedded = await facade.request(manifestRequest(undefined, next.id));
+        assert.strictEqual(multipartJson(embedded.bodyString).type, 'rollBackToEmbedded');
+    });
+
+    async function rollbackRelease(id: string) {
+        const jwt = await JWT.generate({ subject: USER_ID });
+        return facade.request(
+            HttpRequest.POST(`/api/apps/${APP_ID}/channels/${CHANNEL_ID}/updates/${id}/rollback`).header('authorization', `Bearer ${jwt}`)
+        );
+    }
+
     test('native-status reports nativeUpdateRequired=true when requiredAt is in the past', async () => {
         const past = atSecond(Date.now() - 60_000);
         await setRequiredAt('ios', past);
@@ -271,6 +424,17 @@ async function seedBase(gitlabPort: number) {
         deletedAt: null
     });
 
+    await createPersistedEntity(UserEntity, {
+        id: USER_ID,
+        vcsId: ZERO_ID,
+        vcsUserId: 'rollback-user',
+        name: 'rollback-user',
+        isAdmin: false,
+        createdAt: new Date(),
+        lastLoginAt: new Date(),
+        vcsSession: { accessToken: 'tok', expiresAt: Date.now() + 3600_000, refreshToken: 'r', redirectUri: 'http://localhost' }
+    });
+
     await createPersistedEntity(AppEntity, {
         id: APP_ID,
         name: 'Test App',
@@ -296,7 +460,7 @@ async function seedBase(gitlabPort: number) {
     });
 }
 
-async function makeRelease(status: 'staging' | 'canary' | 'released'): Promise<UpdateEntity> {
+async function makeRelease(status: 'staging' | 'canary' | 'released', overrides: Partial<UpdateEntity> = {}): Promise<UpdateEntity> {
     const update = await createPersistedEntity(UpdateEntity, {
         id: uuid7(),
         appId: APP_ID,
@@ -313,7 +477,10 @@ async function makeRelease(status: 'staging' | 'canary' | 'released'): Promise<U
         metadataJson: {},
         createdAt: new Date(),
         releasedAt: status === 'released' ? new Date() : null,
-        promotedById: null
+        promotedById: null,
+        supersededAt: null,
+        supersededById: null,
+        ...overrides
     });
 
     // one launch asset per platform
@@ -384,4 +551,10 @@ async function setRequiredAt(platform: 'ios' | 'android', requiredAt: Date | nul
     if (!storeVersion) return;
     storeVersion.nativeUpdateRequiredAt = requiredAt;
     await storeVersion.save();
+}
+
+function multipartJson(body: string): { id?: string; createdAt?: string; type?: string; parameters: { commitTime: string } } {
+    const json = body.split('\r\n').find(line => line.startsWith('{'));
+    assert.ok(json, 'expected a JSON multipart part');
+    return JSON.parse(json);
 }
