@@ -3,14 +3,15 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light dark" />
         <title>Mobile Update Server</title>
         <style>
             html {
-                background-color: #fafafa;
+                background-color: #f6f7f9;
             }
 
             html.dark {
-                background-color: #0a0a0a;
+                background-color: #0c0d10;
             }
         </style>
     </head>
@@ -18,8 +19,12 @@
         <div id="app"></div>
         <script>
             (function () {
-                var stored = localStorage.getItem('mus:theme');
-                var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var stored = null;
+                try {
+                    stored = localStorage.getItem('mus:theme');
+                } catch (e) {}
+                var mode = stored === 'light' || stored === 'dark' ? stored : 'system';
+                var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 if (isDark) document.documentElement.classList.add('dark');
             })();
         </script>

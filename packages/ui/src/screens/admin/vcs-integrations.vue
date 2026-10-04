@@ -5,27 +5,31 @@
         <LoaderModal v-if="isLoading" />
 
         <template v-else>
-            <div class="list">
+            <div class="list card">
                 <div v-for="i in integrations" :key="i.id" class="row">
                     <div>
                         <div class="name">{{ i.name }}</div>
                         <div class="meta">{{ i.platform }}</div>
                     </div>
-                    <button @click="remove(i.id)">Delete</button>
+                    <button class="btn danger sm" @click="remove(i.id)">Delete</button>
                 </div>
                 <div v-if="!integrations?.length" class="empty">No integrations yet.</div>
             </div>
 
-            <h2>Add integration</h2>
-            <form @submit.prevent="submit" class="form">
-                <label>Name<input v-model="form.name" required /></label>
-                <label>GitLab URL<input v-model="form.url" type="url" required /></label>
-                <label>Client ID<input v-model="form.clientId" required /></label>
-                <label>Client Secret<input v-model="form.clientSecret" type="password" autocomplete="new-password" required /></label>
-                <button type="submit" class="primary" :disabled="submitting">
-                    {{ submitting ? 'Saving...' : 'Add' }}
-                </button>
-            </form>
+            <section class="integration-form card">
+                <header class="card-header"><h2>Add integration</h2></header>
+                <form @submit.prevent="submit" class="form card-body">
+                    <label>Name<input class="input" v-model="form.name" required /></label>
+                    <label>GitLab URL<input class="input" v-model="form.url" type="url" required /></label>
+                    <label>Client ID<input class="input" v-model="form.clientId" required /></label>
+                    <label
+                        >Client Secret<input class="input" v-model="form.clientSecret" type="password" autocomplete="new-password" required
+                    /></label>
+                    <button type="submit" class="btn primary" :disabled="submitting">
+                        {{ submitting ? 'Saving...' : 'Add' }}
+                    </button>
+                </form>
+            </section>
         </template>
     </div>
 </template>
@@ -94,31 +98,48 @@ onMounted(load);
 </script>
 
 <style lang="scss" scoped>
-@reference "tailwindcss";
-
 #vcs-integrations {
-    @apply flex flex-col gap-4;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
-
 .list {
-    @apply flex flex-col gap-2;
+    overflow: hidden;
 }
-
 .row {
-    @apply flex items-center justify-between p-3 border border-neutral-500/25 rounded-md;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    &:last-child {
+        border-bottom: 0;
+    }
     .name {
-        @apply font-semibold;
+        font-weight: 600;
     }
     .meta {
-        @apply text-xs text-neutral-500;
+        color: var(--text-3);
+        font-size: 12px;
     }
 }
-
 .empty {
-    @apply text-neutral-500 text-sm py-4 text-center;
+    padding: 32px 18px;
+    color: var(--text-3);
+    font-size: 13px;
+    text-align: center;
 }
-
+.integration-form {
+    width: 100%;
+    max-width: 480px;
+}
 .form {
-    @apply flex flex-col gap-3 max-w-md;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    .btn {
+        align-self: flex-start;
+    }
 }
 </style>

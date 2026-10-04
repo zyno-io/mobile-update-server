@@ -35,28 +35,30 @@
             </div>
 
             <h2>Assets</h2>
-            <table class="assets">
-                <thead>
-                    <tr>
-                        <th>Key</th>
-                        <th>Platform</th>
-                        <th>Type</th>
-                        <th>Size</th>
-                        <th>Launch?</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="a in update.assets" :key="a.id">
-                        <td>
-                            <code>{{ a.key }}</code>
-                        </td>
-                        <td>{{ a.platform }}</td>
-                        <td>{{ a.contentType }}</td>
-                        <td>{{ formatSize(a.size) }}</td>
-                        <td>{{ a.isLaunchAsset ? 'yes' : '' }}</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-wrap card">
+                <table class="assets data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Key</th>
+                            <th scope="col">Platform</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Size</th>
+                            <th scope="col">Launch?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="a in update.assets" :key="a.id">
+                            <td>
+                                <code>{{ a.key }}</code>
+                            </td>
+                            <td>{{ a.platform }}</td>
+                            <td>{{ a.contentType }}</td>
+                            <td>{{ formatSize(a.size) }}</td>
+                            <td>{{ a.isLaunchAsset ? 'yes' : '' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </template>
     </div>
 </template>
@@ -125,66 +127,30 @@ onMounted(load);
 </script>
 
 <style lang="scss" scoped>
-@reference "tailwindcss";
-
 #update-detail {
-    @apply flex flex-col gap-4;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
-
 .back {
-    @apply text-xs text-neutral-500;
+    font-size: 12px;
+    color: var(--text-3);
 }
-
-.meta {
-    @apply flex gap-3 text-xs text-neutral-500 mt-1 items-center;
+h1 {
+    margin-top: 8px;
+    overflow-wrap: anywhere;
 }
-
-.status {
-    @apply text-xs uppercase tracking-wide px-2 py-0.5 rounded-md;
-    &.staging {
-        @apply bg-purple-200 text-purple-900;
-    }
-    &.canary {
-        @apply bg-amber-200 text-amber-900;
-    }
-    &.released {
-        @apply bg-green-200 text-green-900;
-    }
-    &.draft,
-    &.canceled {
-        @apply bg-neutral-200 text-neutral-700;
-    }
-}
-
-.metrics {
-    @apply flex gap-4 flex-wrap;
-    .metric {
-        @apply flex flex-col p-4 border border-neutral-500/25 rounded-lg min-w-[160px];
-        .value {
-            @apply text-2xl font-semibold;
-        }
-        .label {
-            @apply text-xs text-neutral-500 uppercase tracking-wide;
-        }
-    }
-}
-
-table.assets {
-    @apply w-full text-sm border-collapse;
-    th,
-    td {
-        @apply text-left px-3 py-2 border-b border-neutral-500/25;
-    }
-    code {
-        @apply text-xs font-mono;
-    }
-}
-
 h1 .commit-link {
-    @apply font-mono text-blue-700 hover:underline;
+    font-family: var(--font-mono);
+    color: var(--link);
 }
-
-html.dark h1 .commit-link {
-    @apply text-blue-400;
+.meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-3);
 }
 </style>
