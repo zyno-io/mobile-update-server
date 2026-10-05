@@ -192,7 +192,11 @@ describe('store versions', () => {
     });
 
     after(async () => {
-        await gitlab.close();
+        try {
+            await facade?.stop();
+        } finally {
+            await gitlab?.close();
+        }
     });
 
     test('first poll inserts a storeVersion row for a tracked channel', async () => {

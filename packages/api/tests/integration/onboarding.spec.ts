@@ -3,7 +3,7 @@ import { HttpRequest } from '@zyno-io/ts-server-foundation';
 import { uuid } from '@zyno-io/ts-server-foundation';
 import { createPersistedEntity, JWT, TestingHelpers } from '@zyno-io/ts-server-foundation';
 import assert from 'node:assert';
-import { before, describe, test } from 'node:test';
+import { after, before, describe, test } from 'node:test';
 
 import { CoreAppOptions } from '../../src/app';
 import { UserEntity } from '../../src/entities/User.entity';
@@ -25,6 +25,10 @@ describe('onboarding', () => {
             databasePrefix: 'mus_onboard'
         });
         await facade.start();
+    });
+
+    after(async () => {
+        await facade?.stop();
     });
 
     test('fresh install → isOnboarded=false', async () => {

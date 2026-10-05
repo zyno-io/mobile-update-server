@@ -37,7 +37,11 @@ describe('binary builds', () => {
     });
 
     after(async () => {
-        await gitlab.close();
+        try {
+            await facade?.stop();
+        } finally {
+            await gitlab?.close();
+        }
     });
 
     test('create rejects unknown CI token → 401', async () => {
