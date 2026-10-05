@@ -1,6 +1,6 @@
 <template>
-    <div class="loader" :class="size">
-        <i class="fa fa-spinner fa-spin" />
+    <div class="loader" :class="size" role="status" aria-label="Loading">
+        <i class="fa fa-spinner fa-spin" aria-hidden="true" />
     </div>
 </template>
 
@@ -12,7 +12,7 @@ defineProps<{ size?: string }>();
 @reference "tailwindcss";
 
 .loader {
-    @apply flex items-center justify-center py-8 text-neutral-500;
+    @apply flex items-center justify-center py-8 text-(--text-3);
     i {
         @apply text-xl;
     }

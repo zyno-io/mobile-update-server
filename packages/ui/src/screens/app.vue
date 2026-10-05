@@ -8,7 +8,7 @@
                     <h1>{{ app.name }}</h1>
                     <a v-if="app.webUrl" :href="app.webUrl" target="_blank" class="repo-link">{{ app.projectPath }}</a>
                 </div>
-                <button v-if="canManage" @click="showCreateChannel = true">New channel</button>
+                <button class="btn primary" v-if="canManage" @click="showCreateChannel = true">New channel</button>
             </div>
 
             <div class="metrics" v-if="metrics">
@@ -27,13 +27,13 @@
             </div>
 
             <h2>Channels</h2>
-            <div class="channel-list">
+            <div class="channel-list card">
                 <div v-if="!channels?.length" class="empty">No channels yet.</div>
-                <div
+                <RouterLink
                     v-for="ch in channels"
                     :key="ch.id"
                     class="channel"
-                    @click="$router.push({ name: 'channel', params: { appId: app.id, channelId: ch.id } })"
+                    :to="{ name: 'channel', params: { appId: app.id, channelId: ch.id } }"
                 >
                     <div>
                         <div class="name">{{ ch.name }}</div>
@@ -41,8 +41,8 @@
                             {{ channelBranch(ch) }} · {{ ch.stagingMembers?.length ?? 0 }} staging, {{ ch.canaryMembers.length }} canary
                         </div>
                     </div>
-                    <i class="fa fa-chevron-right" />
-                </div>
+                    <i class="fa fa-chevron-right" aria-hidden="true" />
+                </RouterLink>
             </div>
         </template>
 
@@ -52,15 +52,15 @@
                 <form @submit.prevent="createChannel">
                     <label>
                         Name
-                        <input v-model="newChannelName" type="text" placeholder="e.g. production" required />
+                        <input class="input" v-model="newChannelName" type="text" placeholder="e.g. production" required />
                     </label>
                     <label>
                         Git branch
-                        <input v-model="newChannelBranch" type="text" placeholder="e.g. main" required />
+                        <input class="input" v-model="newChannelBranch" type="text" placeholder="e.g. main" required />
                     </label>
                     <div class="actions">
-                        <button type="button" @click="showCreateChannel = false">Cancel</button>
-                        <button type="submit" class="primary" :disabled="creating">
+                        <button class="btn" type="button" @click="showCreateChannel = false">Cancel</button>
+                        <button type="submit" class="btn primary" :disabled="creating">
                             {{ creating ? 'Creating...' : 'Create' }}
                         </button>
                     </div>
@@ -134,65 +134,69 @@ onMounted(load);
 </script>
 
 <style lang="scss" scoped>
-@reference "tailwindcss";
-
 #app-detail {
-    @apply flex flex-col gap-4;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
-
 .header {
-    @apply flex items-center justify-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
-
 .repo-link {
-    @apply text-xs text-neutral-500;
+    font-size: 12px;
+    color: var(--text-3);
 }
-
-.metrics {
-    @apply flex gap-4 flex-wrap;
-
-    .metric {
-        @apply flex flex-col gap-0 p-4 border border-neutral-500/25 rounded-lg min-w-[120px];
-
-        .value {
-            @apply text-2xl font-semibold;
-        }
-        .label {
-            @apply text-xs text-neutral-500 uppercase tracking-wide;
-        }
-    }
-}
-
 .channel-list {
-    @apply flex flex-col gap-2;
+    overflow: hidden;
 }
-
 .channel {
-    @apply flex items-center justify-between p-3 border border-neutral-500/25 rounded-md cursor-pointer hover:bg-neutral-100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    text-decoration: none;
+    &:hover {
+        background: var(--surface-hover);
+    }
+    &:last-child {
+        border-bottom: 0;
+    }
     .name {
-        @apply font-semibold;
+        font-weight: 600;
     }
-    .meta {
-        @apply text-xs text-neutral-500;
+    .meta,
+    > i {
+        color: var(--text-3);
+        font-size: 12px;
     }
 }
-
-html.dark .channel:hover {
-    @apply bg-neutral-800;
-}
-
 .empty {
-    @apply text-neutral-500 text-sm py-6 text-center;
+    padding: 32px 18px;
+    color: var(--text-3);
+    font-size: 13px;
+    text-align: center;
 }
-
 .modal-form {
-    @apply flex flex-col gap-3 p-4 w-96;
-
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 348px;
+    max-width: 100%;
     form {
-        @apply flex flex-col gap-3;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
     }
     .actions {
-        @apply flex justify-end gap-2;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
     }
 }
 </style>

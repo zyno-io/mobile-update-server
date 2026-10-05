@@ -1,23 +1,20 @@
 <template>
-    <div id="login">
-        <div class="title">Mobile Update Server</div>
-
-        <div class="card">
-            <h2>Sign in</h2>
-
-            <div v-if="isLoading" class="card-loading">
-                <i class="fa fa-spinner fa-spin" />
-            </div>
-
-            <template v-else>
-                <button v-for="provider in providers" :key="provider.id" class="primary" @click="login(provider)">
-                    Continue with {{ provider.name }}
-                </button>
-
-                <div v-if="!providers?.length" class="empty">No login providers configured.</div>
-            </template>
+    <AuthShell>
+        <h2>Sign in</h2>
+        <p class="lede">Manage apps, release updates, and keep your devices current.</p>
+        <div v-if="isLoading" class="card-loading" role="status" aria-label="Loading sign-in providers">
+            <i class="fa fa-spinner fa-spin" aria-hidden="true" />
         </div>
-    </div>
+        <template v-else>
+            <button v-for="provider in providers" :key="provider.id" class="btn primary lg" @click="login(provider)">
+                <i class="fa-brands fa-gitlab" aria-hidden="true" /> Continue with {{ provider.name }}
+            </button>
+            <div v-if="!providers?.length" class="notice warning" role="status">
+                <i class="fa-solid fa-circle-info" aria-hidden="true" />
+                <div class="notice-body">No login providers configured.</div>
+            </div>
+        </template>
+    </AuthShell>
 </template>
 
 <script lang="ts" setup>
@@ -28,6 +25,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 import { LOCAL_STORAGE_AUTH_KEY } from '@/openapi-client';
 import { type ISessionProvider, SessionApi } from '@/openapi-client-generated';
+import AuthShell from '@/shared/components/auth-shell.vue';
 import { useStore } from '@/store';
 
 const store = useStore();
@@ -91,33 +89,20 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@reference "tailwindcss";
-
-#login {
-    @apply flex-1 flex flex-col items-center justify-center gap-6 px-6;
-
-    .title {
-        @apply text-xl font-semibold tracking-tight select-none;
-    }
-
-    .card {
-        @apply flex flex-col p-6 gap-3 border border-neutral-500/25 rounded-xl w-full max-w-sm shadow-sm bg-white/40;
-    }
-
-    h2 {
-        @apply text-lg font-semibold mb-1 text-center;
-    }
-
-    .card-loading {
-        @apply flex justify-center items-center py-8 text-2xl text-neutral-400;
-    }
-
-    .empty {
-        @apply text-sm text-neutral-500 text-center py-4;
-    }
+h2 {
+    text-align: center;
 }
-
-html.dark #login .card {
-    @apply bg-neutral-900/40 border-neutral-700/50;
+.lede {
+    color: var(--text-2);
+    font-size: 13.5px;
+    text-align: center;
+    margin-bottom: 6px;
+}
+.card-loading {
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    color: var(--text-3);
+    font-size: 24px;
 }
 </style>

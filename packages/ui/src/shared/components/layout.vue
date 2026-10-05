@@ -1,124 +1,239 @@
 <template>
-    <div id="page-wrapper">
-        <nav>
-            <a class="title" @click="$router.push('/')">Mobile Update Server</a>
-            <div class="nav-right">
-                <a class="nav-icon" :title="isDark ? 'Light mode' : 'Dark mode'" @click="toggleTheme">
-                    <i :class="isDark ? 'fa fa-sun' : 'fa fa-moon'" />
-                </a>
-                <div v-if="store.isAdmin" class="admin-dropdown">
-                    <i class="fa fa-gear" />
-                    <div class="dropdown-menu">
-                        <RouterLink to="/admin/vcs-integrations" class="dropdown-item">VCS Integrations</RouterLink>
-                        <RouterLink to="/admin/users" class="dropdown-item">Users</RouterLink>
-                    </div>
+    <div class="shell">
+        <a class="skip-link" href="#main">Skip to content</a>
+        <header class="topbar">
+            <div class="topbar-inner">
+                <RouterLink to="/apps" class="brand" aria-label="Mobile Update Server home">
+                    <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-mobile-screen" /></span>
+                    <span class="brand-name">Mobile Update Server</span>
+                </RouterLink>
+                <nav class="nav" aria-label="Primary">
+                    <RouterLink to="/apps" class="nav-link" active-class="active">Apps</RouterLink>
+                </nav>
+                <div class="topbar-right">
+                    <ThemeMenu />
+                    <DropdownMenu label="Account menu" trigger-class="user-trigger">
+                        <template #trigger>
+                            <span class="avatar initials" aria-hidden="true">{{ initials }}</span>
+                            <span class="user-name">{{ store.sessionUser?.name }}</span>
+                            <i class="fa-solid fa-chevron-down chevron" aria-hidden="true" />
+                        </template>
+                        <div class="menu-meta">
+                            <strong>{{ store.sessionUser?.name }}</strong>
+                            {{ store.isAdmin ? 'Administrator' : 'Account' }}
+                        </div>
+                        <div class="menu-separator" role="separator" />
+                        <template v-if="store.isAdmin">
+                            <div class="menu-label">Administration</div>
+                            <RouterLink to="/admin/vcs-integrations" class="menu-item" role="menuitem">
+                                <i class="fa-solid fa-plug" aria-hidden="true" /> VCS Integrations
+                            </RouterLink>
+                            <RouterLink to="/admin/users" class="menu-item" role="menuitem">
+                                <i class="fa-solid fa-users" aria-hidden="true" /> Users
+                            </RouterLink>
+                            <div class="menu-separator" role="separator" />
+                        </template>
+                        <button type="button" class="menu-item" role="menuitem" @click="logout">
+                            <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" /> Sign out
+                        </button>
+                    </DropdownMenu>
                 </div>
-                <a class="logout" @click="logout">Logout</a>
             </div>
-        </nav>
-        <main>
+        </header>
+        <main id="main" tabindex="-1">
             <slot />
         </main>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed } from 'vue';
 
 import { LOCAL_STORAGE_AUTH_KEY } from '@/openapi-client';
 import { useStore } from '@/store';
 
+import DropdownMenu from './dropdown-menu.vue';
+import ThemeMenu from './theme-menu.vue';
+
 const store = useStore();
-const THEME_OVERRIDE_KEY = 'mus:theme';
-const isDark = ref(document.documentElement.classList.contains('dark'));
-
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-function applyTheme(dark: boolean) {
-    isDark.value = dark;
-    document.documentElement.classList.toggle('dark', dark);
-}
-
-function toggleTheme() {
-    const next = !isDark.value;
-    const sysIsDark = mediaQuery.matches;
-    if ((next && sysIsDark) || (!next && !sysIsDark)) {
-        localStorage.removeItem(THEME_OVERRIDE_KEY);
-    } else {
-        localStorage.setItem(THEME_OVERRIDE_KEY, next ? 'dark' : 'light');
-    }
-    applyTheme(next);
-}
-
-function onSystemThemeChange(e: MediaQueryListEvent) {
-    if (!localStorage.getItem(THEME_OVERRIDE_KEY)) applyTheme(e.matches);
-}
+const initials = computed(() => {
+    const name = store.sessionUser?.name ?? '?';
+    return name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(part => part.charAt(0).toUpperCase())
+        .join('');
+});
 
 function logout() {
     store.sessionUser = null;
     localStorage.removeItem(LOCAL_STORAGE_AUTH_KEY);
 }
-
-onMounted(() => mediaQuery.addEventListener('change', onSystemThemeChange));
-onUnmounted(() => mediaQuery.removeEventListener('change', onSystemThemeChange));
 </script>
 
 <style lang="scss" scoped>
-@reference "tailwindcss";
-
-#page-wrapper {
-    @apply flex-1 flex flex-col;
+.shell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
-nav {
-    @apply px-6 py-4 border-b border-neutral-500/25 flex justify-between items-center;
+.skip-link {
+    position: absolute;
+    left: 12px;
+    top: -40px;
+    z-index: 100;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: var(--accent-text);
 
-    .title {
-        @apply text-lg font-semibold cursor-pointer select-none;
+    &:focus {
+        top: 10px;
+    }
+}
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--header-h);
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+}
+
+.topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    height: 100%;
+    padding: 0 16px;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--text);
+    font-weight: 650;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    text-decoration: none !important;
+}
+
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: var(--text);
+    color: var(--bg);
+    font-size: 11px;
+}
+
+.nav {
+    display: flex;
+    gap: 2px;
+}
+
+.nav-link {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none !important;
+
+    &:hover {
+        background: var(--surface-2);
+        color: var(--text);
     }
 
-    .nav-right {
-        @apply flex items-center gap-5;
+    &.active {
+        background: var(--surface-3);
+        color: var(--text);
     }
+}
 
-    .nav-icon,
-    .logout {
-        @apply cursor-pointer text-neutral-500 hover:text-neutral-700;
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+
+    :deep(.icon-trigger) {
+        justify-content: center;
+        width: 32px;
+        padding: 0;
     }
+}
 
-    .admin-dropdown {
-        @apply relative cursor-pointer;
-        > i {
-            @apply text-neutral-500 hover:text-neutral-700;
-        }
+.avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-3);
 
-        .dropdown-menu {
-            @apply absolute right-0 top-full z-50 mt-2 py-1 bg-white border border-neutral-500/25 rounded-md shadow-lg min-w-[180px] opacity-0 invisible transition-all duration-100;
-        }
-        &:hover .dropdown-menu {
-            @apply opacity-100 visible;
-        }
-        .dropdown-item {
-            @apply block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100;
-        }
+    &.initials {
+        display: grid;
+        place-items: center;
+        color: var(--text-2);
+        font-size: 10.5px;
+        font-weight: 600;
     }
+}
+
+.user-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chevron {
+    color: var(--text-3);
+    font-size: 9px;
 }
 
 main {
-    @apply flex-1 p-6 max-w-6xl w-full mx-auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+
+    &:focus {
+        outline: none;
+    }
 }
 
-html.dark nav .nav-icon,
-html.dark nav .logout,
-html.dark nav .admin-dropdown > i {
-    @apply text-neutral-400 hover:text-neutral-200;
+@media (max-width: 900px) {
+    .user-name,
+    .chevron {
+        display: none;
+    }
 }
 
-html.dark nav .admin-dropdown .dropdown-menu {
-    @apply bg-neutral-800 border-neutral-700;
-}
+@media (max-width: 640px) {
+    .topbar-inner {
+        gap: 10px;
+        padding: 0 12px;
+    }
 
-html.dark nav .admin-dropdown .dropdown-item {
-    @apply text-neutral-200 hover:bg-neutral-700;
+    .brand-name {
+        display: none;
+    }
+
+    .nav-link {
+        padding: 6px 8px;
+    }
 }
 </style>

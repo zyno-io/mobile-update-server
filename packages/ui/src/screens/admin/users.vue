@@ -2,26 +2,35 @@
     <div id="users">
         <h1>Users</h1>
         <LoaderModal v-if="isLoading" />
-        <table v-else class="users">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>VCS</th>
-                    <th>Created</th>
-                    <th>Last login</th>
-                    <th>Admin</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="u in users" :key="u.id">
-                    <td>{{ u.name }}</td>
-                    <td>{{ u.vcsName }}</td>
-                    <td>{{ formatDate(u.createdAt) }}</td>
-                    <td>{{ formatDate(u.lastLoginAt) }}</td>
-                    <td><input type="checkbox" :checked="u.isAdmin" @change="toggle(u, ($event.target as HTMLInputElement).checked)" /></td>
-                </tr>
-            </tbody>
-        </table>
+        <div v-else class="table-wrap card">
+            <table class="users data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">VCS</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">Last login</th>
+                        <th scope="col">Admin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="u in users" :key="u.id">
+                        <td>{{ u.name }}</td>
+                        <td>{{ u.vcsName }}</td>
+                        <td>{{ formatDate(u.createdAt) }}</td>
+                        <td>{{ formatDate(u.lastLoginAt) }}</td>
+                        <td>
+                            <input
+                                type="checkbox"
+                                :aria-label="`Administrator access for ${u.name}`"
+                                :checked="u.isAdmin"
+                                @change="toggle(u, ($event.target as HTMLInputElement).checked)"
+                            />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </template>
 
@@ -65,17 +74,9 @@ onMounted(load);
 </script>
 
 <style lang="scss" scoped>
-@reference "tailwindcss";
-
 #users {
-    @apply flex flex-col gap-4;
-}
-
-table.users {
-    @apply w-full text-sm border-collapse;
-    th,
-    td {
-        @apply text-left px-3 py-2 border-b border-neutral-500/25;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 </style>

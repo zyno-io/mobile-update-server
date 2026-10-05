@@ -1,27 +1,25 @@
 <template>
-    <div id="onboarding">
-        <a class="title">Mobile Update Server</a>
-
-        <div class="card">
+    <AuthShell wide>
+        <div id="onboarding">
             <h2>Welcome</h2>
             <p>Configure your first GitLab integration to get started.</p>
 
             <form @submit.prevent="submit">
                 <label>
                     Integration name
-                    <input v-model="form.name" type="text" required />
+                    <input class="input" v-model="form.name" type="text" required />
                 </label>
                 <label>
                     GitLab URL
-                    <input v-model="form.url" type="url" placeholder="https://gitlab.example.com" required />
+                    <input class="input" v-model="form.url" type="url" placeholder="https://gitlab.example.com" required />
                 </label>
                 <label>
                     OAuth Client ID
-                    <input v-model="form.clientId" type="text" required />
+                    <input class="input" v-model="form.clientId" type="text" required />
                 </label>
                 <label>
                     OAuth Client Secret
-                    <input v-model="form.clientSecret" type="password" autocomplete="new-password" required />
+                    <input class="input" v-model="form.clientSecret" type="password" autocomplete="new-password" required />
                 </label>
 
                 <div class="redirect-url">
@@ -30,12 +28,12 @@
                     <p class="hint">Configure this redirect URI when creating your GitLab OAuth application.</p>
                 </div>
 
-                <button type="submit" class="primary" :disabled="isSubmitting">
+                <button type="submit" class="btn primary" :disabled="isSubmitting">
                     {{ isSubmitting ? 'Creating...' : 'Create integration' }}
                 </button>
             </form>
         </div>
-    </div>
+    </AuthShell>
 </template>
 
 <script lang="ts" setup>
@@ -44,6 +42,7 @@ import { handleErrorAndAlert } from '@zyno-io/vue-foundation';
 import { computed, reactive, ref } from 'vue';
 
 import { SessionApi } from '@/openapi-client-generated';
+import AuthShell from '@/shared/components/auth-shell.vue';
 
 const emit = defineEmits<{ complete: [] }>();
 
@@ -82,32 +81,40 @@ async function submit() {
 </script>
 
 <style lang="scss" scoped>
-@reference "tailwindcss";
-
 #onboarding {
-    @apply flex-1 flex flex-col items-center justify-center p-6;
-
-    .card {
-        @apply flex flex-col gap-3 p-6 border border-neutral-500/25 rounded-lg w-[480px];
-    }
-    .title {
-        @apply text-lg cursor-pointer mb-4 text-center;
-    }
-    form {
-        @apply flex flex-col gap-3 mt-2;
-    }
-    .redirect-url {
-        @apply flex flex-col gap-1 p-3 bg-neutral-100 rounded-md;
-        code {
-            @apply text-xs font-mono break-all;
-        }
-        .hint {
-            @apply text-xs text-neutral-500;
-        }
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
-
-html.dark #onboarding .redirect-url {
-    @apply bg-neutral-800;
+h2,
+#onboarding > p {
+    text-align: center;
+}
+#onboarding > p {
+    color: var(--text-2);
+    font-size: 13.5px;
+}
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 6px;
+}
+.redirect-url {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    code {
+        font-size: 12px;
+        overflow-wrap: anywhere;
+    }
+    .hint {
+        color: var(--text-3);
+        font-size: 12px;
+    }
 }
 </style>

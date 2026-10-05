@@ -10,9 +10,9 @@
                     <div class="branch"><i class="fa fa-code-branch" /> {{ channel.branchName }}</div>
                 </div>
                 <div class="header-actions">
-                    <button v-if="canManage" @click="openSettings"><i class="fa fa-gear" /> Settings</button>
-                    <button v-if="canOperate" @click="openMemberEditor('staging')"><i class="fa fa-vial" /> Staging cohort</button>
-                    <button v-if="canOperate" @click="openMemberEditor('canary')"><i class="fa fa-flask" /> Canary cohort</button>
+                    <button class="btn" v-if="canManage" @click="openSettings"><i class="fa fa-gear" /> Settings</button>
+                    <button class="btn" v-if="canOperate" @click="openMemberEditor('staging')"><i class="fa fa-vial" /> Staging cohort</button>
+                    <button class="btn" v-if="canOperate" @click="openMemberEditor('canary')"><i class="fa fa-flask" /> Canary cohort</button>
                 </div>
             </div>
 
@@ -43,7 +43,7 @@
                                 <code class="fingerprint" :title="latestBinaries[platform]!.fingerprint">{{
                                     latestBinaries[platform]!.fingerprint
                                 }}</code>
-                                <button class="link-button" @click="openHistory(platform)"><i class="fa fa-clock-rotate-left" /> History</button>
+                                <button class="btn link-button" @click="openHistory(platform)"><i class="fa fa-clock-rotate-left" /> History</button>
                             </template>
                             <span v-else class="empty">No binary builds recorded yet.</span>
                         </div>
@@ -89,7 +89,7 @@
                         <h3>{{ platformLabel(platform) }}</h3>
                         <select
                             v-if="binaryVersions[platform].length"
-                            class="version-filter"
+                            class="select version-filter"
                             :value="versionFilter[platform] ?? ''"
                             :disabled="updatesLoading[platform]"
                             :aria-label="`Filter ${platformLabel(platform)} updates by binary version`"
@@ -134,12 +134,12 @@
                             </div>
                             <div v-if="canOperate" class="actions">
                                 <template v-if="isLivePending(u)">
-                                    <button class="primary" @click.stop="promote(u)">
+                                    <button class="btn primary" @click.stop="promote(u)">
                                         {{ nextTierLabel(u.status) }}
                                     </button>
-                                    <button class="ghost" @click.stop="cancel(u)">Cancel</button>
+                                    <button class="btn ghost" @click.stop="cancel(u)">Cancel</button>
                                 </template>
-                                <button v-else-if="isLiveRelease(u)" class="danger" @click.stop="rollback(u)">Rollback</button>
+                                <button v-else-if="isLiveRelease(u)" class="btn danger" @click.stop="rollback(u)">Rollback</button>
                             </div>
                         </div>
                     </div>
@@ -156,20 +156,20 @@
                 </p>
                 <div class="member-list">
                     <div v-for="(m, i) in memberEditorRows" :key="i" class="member-row">
-                        <input v-model="m.id" type="text" placeholder="device id" />
-                        <input v-model="m.comment" type="text" placeholder="comment (optional)" />
-                        <button type="button" class="icon-btn" @click="memberEditorRows.splice(i, 1)" title="Remove">
+                        <input class="input" v-model="m.id" type="text" placeholder="device id" />
+                        <input class="input" v-model="m.comment" type="text" placeholder="comment (optional)" />
+                        <button type="button" class="btn icon-btn" @click="memberEditorRows.splice(i, 1)" title="Remove">
                             <i class="fa fa-trash" />
                         </button>
                     </div>
                     <div v-if="!memberEditorRows.length" class="empty">No members yet.</div>
                 </div>
-                <button type="button" class="add-row" @click="memberEditorRows.push({ type: 'device', id: '', comment: '' })">
+                <button type="button" class="btn add-row" @click="memberEditorRows.push({ type: 'device', id: '', comment: '' })">
                     <i class="fa fa-plus" /> Add device
                 </button>
                 <div class="actions">
-                    <button type="button" @click="memberEditorTier = null">Cancel</button>
-                    <button type="button" class="primary" :disabled="savingMembers" @click="saveMembers">
+                    <button class="btn" type="button" @click="memberEditorTier = null">Cancel</button>
+                    <button type="button" class="btn primary" :disabled="savingMembers" @click="saveMembers">
                         {{ savingMembers ? 'Saving...' : 'Save' }}
                     </button>
                 </div>
@@ -210,7 +210,7 @@
                 </p>
 
                 <div class="actions">
-                    <button type="button" @click="historyPlatform = null">Close</button>
+                    <button class="btn" type="button" @click="historyPlatform = null">Close</button>
                 </div>
             </div>
         </VfModal>
@@ -227,7 +227,7 @@
 
                     <label
                         >{{ platform === 'ios' ? 'iOS bundle ID' : 'Android package name' }}
-                        <input v-model="settingsForm[platform].bundleId" type="text" placeholder="com.example.app" />
+                        <input class="input" v-model="settingsForm[platform].bundleId" type="text" placeholder="com.example.app" />
                     </label>
 
                     <label class="checkbox">
@@ -261,7 +261,7 @@
                                         type="number"
                                         min="0"
                                         max="36500"
-                                        class="inline-number"
+                                        class="input inline-number"
                                         :disabled="settingsForm[platform].requireMode !== 'after-days'"
                                     />
                                     <span>days after detection</span>
@@ -281,8 +281,8 @@
                 </p>
 
                 <div class="actions">
-                    <button type="button" @click="showSettings = false">Cancel</button>
-                    <button type="button" class="primary" :disabled="savingSettings" @click="saveSettings">
+                    <button class="btn" type="button" @click="showSettings = false">Cancel</button>
+                    <button type="button" class="btn primary" :disabled="savingSettings" @click="saveSettings">
                         {{ savingSettings ? 'Saving...' : 'Save' }}
                     </button>
                 </div>
@@ -715,7 +715,7 @@ onMounted(load);
 }
 
 .header {
-    @apply flex items-start justify-between gap-4;
+    @apply flex items-start justify-between gap-4 flex-wrap;
 }
 
 .header-actions {
@@ -729,22 +729,22 @@ onMounted(load);
 }
 
 .back {
-    @apply text-xs text-neutral-500;
+    @apply text-xs text-(--text-3);
 }
 
 .branch {
-    @apply text-xs text-neutral-500 mt-1 flex items-center gap-1.5;
+    @apply text-xs text-(--text-3) mt-1 flex items-center gap-1.5;
     i {
         @apply text-[10px];
     }
 }
 
 .empty {
-    @apply text-neutral-500 text-sm;
+    @apply text-(--text-3) text-sm;
 }
 
 .empty-block {
-    @apply flex flex-col items-center gap-2 py-10 text-neutral-500 border border-dashed border-neutral-500/25 rounded-lg;
+    @apply flex flex-col items-center gap-2 py-10 text-(--text-3) border border-dashed border-(--border) rounded-lg;
     i {
         @apply text-2xl;
     }
@@ -755,35 +755,35 @@ onMounted(load);
 
 .platforms {
     @apply grid gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
 }
 
 .platform-card {
-    @apply flex flex-col gap-2 p-4 border border-neutral-500/25 rounded-lg;
+    @apply flex flex-col gap-2 p-4;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .platform-header {
     @apply flex items-center gap-2 mb-1;
     i {
-        @apply text-xl text-neutral-600;
+        @apply text-xl text-(--text-2);
     }
     h3 {
         @apply text-base font-semibold;
     }
 }
 
-html.dark .platform-header i {
-    @apply text-neutral-300;
-}
-
 .platform-row {
     /* 2-col grid so when the value column wraps (long fingerprint + meta),
        the wrapped content stays aligned under the value, not back at the label. */
     @apply grid items-baseline gap-x-3 gap-y-0.5 text-sm py-1;
-    grid-template-columns: 120px minmax(0, 1fr);
+    grid-template-columns: 100px minmax(0, 1fr);
 
     .row-label {
-        @apply text-xs uppercase tracking-wide text-neutral-500 pt-0.5;
+        @apply text-xs uppercase tracking-wide text-(--text-3) pt-0.5;
     }
     .row-value {
         @apply flex items-center gap-3 flex-wrap min-w-0;
@@ -792,64 +792,45 @@ html.dark .platform-header i {
         @apply font-semibold;
     }
     .fingerprint {
-        @apply text-xs font-mono px-2 py-0.5 bg-neutral-100 rounded max-w-[220px] truncate;
+        @apply text-xs font-mono px-2 py-0.5 bg-(--surface-2) rounded max-w-[220px] truncate;
     }
     .meta {
-        @apply text-xs text-neutral-500;
+        @apply text-xs text-(--text-3);
     }
     .commit-link {
-        @apply font-mono text-blue-700 hover:underline;
+        @apply font-mono text-(--link) hover:underline;
     }
     .link-button {
-        @apply text-xs text-neutral-500 hover:text-blue-700 bg-transparent border-0 p-0 flex items-center gap-1 cursor-pointer;
+        @apply text-xs text-(--text-3) hover:text-(--link) bg-transparent border-0 p-0 flex items-center gap-1 cursor-pointer;
+        height: auto;
+        box-shadow: none;
         i {
             @apply text-[10px];
         }
     }
     .empty {
-        @apply text-xs text-neutral-500;
-    }
-    .pill {
-        @apply text-xs uppercase tracking-wide px-2 py-0.5 rounded-md flex items-center gap-1.5;
-        i {
-            @apply text-[10px];
-        }
-        &.active {
-            @apply bg-red-200 text-red-900;
-        }
-        &.pending {
-            @apply bg-amber-200 text-amber-900;
-        }
-    }
-}
-
-html.dark .platform-row {
-    .fingerprint {
-        @apply bg-neutral-800;
-    }
-    .commit-link {
-        @apply text-blue-400;
+        @apply text-xs text-(--text-3);
     }
 }
 
 .updates-grid {
     /* Match the .platforms grid above so each column aligns under its platform card. */
     @apply grid gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
 }
 
 .updates-column {
     @apply flex flex-col gap-2 min-w-0;
 
     .empty {
-        @apply text-xs text-neutral-500 italic py-2;
+        @apply text-xs text-(--text-3) italic py-2;
     }
 }
 
 .updates-column-header {
     @apply flex items-center gap-2 mb-1;
     i {
-        @apply text-base text-neutral-600;
+        @apply text-base text-(--text-2);
     }
     h3 {
         @apply text-sm font-semibold;
@@ -860,16 +841,16 @@ html.dark .platform-row {
     }
 }
 
-html.dark .updates-column-header i {
-    @apply text-neutral-300;
-}
-
 .updates {
     @apply flex flex-col gap-2 min-w-0;
 }
 
 .update {
-    @apply flex items-start justify-between gap-3 p-3 border border-neutral-500/25 rounded-md cursor-pointer hover:bg-neutral-100 transition-colors min-w-0;
+    @apply flex items-start justify-between gap-3 p-3 cursor-pointer hover:bg-(--surface-hover) transition-colors min-w-0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
 
     &.superseded,
     &.canceled {
@@ -886,85 +867,46 @@ html.dark .updates-column-header i {
             @apply text-sm;
         }
     }
-    .status {
-        @apply text-xs uppercase tracking-wide w-fit px-2 py-0.5 rounded-md flex-shrink-0;
 
-        &.staging {
-            @apply bg-purple-200 text-purple-900;
-        }
-        &.canary {
-            @apply bg-amber-200 text-amber-900;
-        }
-        &.released {
-            @apply bg-green-200 text-green-900;
-        }
-        &.draft,
-        &.canceled {
-            @apply bg-neutral-200 text-neutral-700;
-        }
-        &.rolled-back {
-            @apply bg-red-200 text-red-900;
-        }
-        &.superseded {
-            @apply bg-neutral-300 text-neutral-700;
-        }
-    }
     .headline {
         @apply text-sm font-semibold font-mono truncate;
     }
     .commit-link {
-        @apply text-xs font-mono px-1.5 py-0.5 bg-neutral-100 rounded text-blue-700 hover:underline flex-shrink-0;
+        @apply text-xs font-mono px-1.5 py-0.5 bg-(--surface-2) rounded text-(--link) hover:underline flex-shrink-0;
     }
     .subject {
-        @apply text-xs text-neutral-600 truncate;
+        @apply text-xs text-(--text-2) truncate;
     }
     .meta {
-        @apply text-xs text-neutral-500;
+        @apply text-xs text-(--text-3);
     }
     .actions {
         @apply flex flex-col gap-1 flex-shrink-0;
         button {
-            @apply text-xs px-2 py-1;
-        }
-        .danger {
-            @apply bg-red-600 text-white hover:bg-red-700;
-        }
-        .ghost {
-            @apply bg-transparent border border-neutral-400 text-neutral-700 hover:bg-neutral-100;
+            @apply text-xs;
+            height: 26px;
+            padding: 0 9px;
+            border-radius: var(--radius-sm);
         }
     }
-}
-
-html.dark .update {
-    .commit-link {
-        @apply bg-neutral-800 text-blue-400;
-    }
-    .subject {
-        @apply text-neutral-400;
-    }
-    .actions .ghost {
-        @apply text-neutral-200 border-neutral-600 hover:bg-neutral-800;
-    }
-}
-
-html.dark .update:hover {
-    @apply bg-neutral-800;
 }
 
 .modal-form {
     /* No outer padding — the wrapping .vf-modal-content already pads us. */
-    @apply flex flex-col gap-3 w-[520px];
+    @apply flex flex-col gap-3;
+    width: 520px;
+    max-width: 100%;
 
     .hint {
-        @apply text-xs text-neutral-500;
+        @apply text-xs text-(--text-3);
         &.warn {
-            @apply text-amber-600;
+            @apply text-(--warning);
         }
     }
     label.checkbox {
         @apply flex flex-row items-start gap-2 text-sm cursor-pointer;
         input[type='checkbox'] {
-            @apply mt-0.5 w-4 h-4 shrink-0 accent-blue-600;
+            @apply mt-0.5 w-4 h-4 shrink-0 accent-(--accent);
         }
         > span {
             @apply leading-snug;
@@ -986,7 +928,7 @@ html.dark .update:hover {
     .member-list {
         @apply flex flex-col gap-1 max-h-[40vh] overflow-y-auto;
         .empty {
-            @apply text-xs text-neutral-500 italic py-2;
+            @apply text-xs text-(--text-3) italic py-2;
         }
     }
     .member-row {
@@ -998,7 +940,7 @@ html.dark .update:hover {
         }
     }
     .icon-btn {
-        @apply text-neutral-500 hover:text-red-600 px-2;
+        @apply text-(--text-3) hover:text-(--danger) px-2;
     }
     .add-row {
         @apply self-start text-sm flex items-center gap-1.5;
@@ -1010,7 +952,7 @@ html.dark .update:hover {
 
 .modal-form.settings {
     .platform-section {
-        @apply flex flex-col gap-2 p-3 border border-neutral-500/20 rounded-lg;
+        @apply flex flex-col gap-2 p-3 border border-(--border) rounded-lg;
     }
     .section-header {
         @apply flex items-center gap-2 mb-1;
@@ -1022,16 +964,16 @@ html.dark .update:hover {
         }
     }
     fieldset.native-update {
-        @apply flex flex-col gap-2 mt-1 p-3 border border-neutral-500/15 rounded-md;
+        @apply flex flex-col gap-2 mt-1 p-3 border border-(--border) rounded-md;
         legend {
-            @apply text-xs uppercase tracking-wide text-neutral-500 px-1;
+            @apply text-xs uppercase tracking-wide text-(--text-3) px-1;
         }
     }
     .checkbox-block {
         @apply flex flex-col gap-1.5;
     }
     .after-days-row {
-        @apply flex items-center gap-2 text-neutral-500;
+        @apply flex items-center gap-2 text-(--text-3);
     }
     .inline-number {
         @apply w-16 text-center;
@@ -1042,45 +984,51 @@ html.dark .update:hover {
     .section-header {
         @apply flex items-center gap-2;
         i {
-            @apply text-lg text-neutral-600;
+            @apply text-lg text-(--text-2);
         }
     }
     .builds {
         @apply flex flex-col gap-1 max-h-[50vh] overflow-y-auto;
     }
     .build {
-        @apply flex items-center gap-3 flex-wrap min-w-0 text-sm py-2 border-b border-neutral-500/15 last:border-b-0;
+        @apply flex items-center gap-3 flex-wrap min-w-0 text-sm py-2 border-b border-(--border) last:border-b-0;
 
         .version {
             @apply font-semibold;
         }
         .meta {
-            @apply text-xs text-neutral-500;
+            @apply text-xs text-(--text-3);
         }
         /* Pin the date to the right edge of the row. */
         .date {
             @apply ml-auto whitespace-nowrap;
         }
         .fingerprint {
-            @apply text-xs font-mono px-2 py-0.5 bg-neutral-100 rounded max-w-[220px] truncate;
+            @apply text-xs font-mono px-2 py-0.5 bg-(--surface-2) rounded max-w-[220px] truncate;
         }
         .commit-link {
-            @apply font-mono text-blue-700 hover:underline;
+            @apply font-mono text-(--link) hover:underline;
         }
     }
 }
 
-html.dark .modal-form.history {
-    .section-header i {
-        @apply text-neutral-300;
+@media (max-width: 480px) {
+    .platform-row {
+        grid-template-columns: 84px minmax(0, 1fr);
+        gap: 8px;
     }
-    .build {
-        .fingerprint {
-            @apply bg-neutral-800;
-        }
-        .commit-link {
-            @apply text-blue-400;
-        }
+    .platform-row .fingerprint {
+        max-width: 100%;
+    }
+    .modal-form .member-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .modal-form .member-row input:nth-child(2) {
+        grid-row: 2;
+    }
+    .modal-form .member-row button {
+        grid-column: 2;
+        grid-row: 1 / 3;
     }
 }
 </style>
