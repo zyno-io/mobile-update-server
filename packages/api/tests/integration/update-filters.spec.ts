@@ -50,7 +50,11 @@ describe('update filters + binary versions', () => {
     });
 
     after(async () => {
-        await gitlab.close();
+        try {
+            await facade?.stop();
+        } finally {
+            await gitlab?.close();
+        }
     });
 
     test('versions lists distinct binary versions, newest build first', async () => {

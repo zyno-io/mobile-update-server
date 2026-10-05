@@ -33,7 +33,11 @@ describe('upload (CI token enforcement)', () => {
     });
 
     after(async () => {
-        await gitlab.close();
+        try {
+            await facade?.stop();
+        } finally {
+            await gitlab?.close();
+        }
     });
 
     test('create update with valid CI token (project_id matches) → 200', async () => {

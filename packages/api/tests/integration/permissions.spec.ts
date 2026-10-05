@@ -37,7 +37,11 @@ describe('permissions (GitLab project membership)', () => {
     });
 
     after(async () => {
-        await gitlab.close();
+        try {
+            await facade?.stop();
+        } finally {
+            await gitlab?.close();
+        }
     });
 
     test('reporter (access_level=20) can read, but cannot promote or edit rollout cohorts', async () => {

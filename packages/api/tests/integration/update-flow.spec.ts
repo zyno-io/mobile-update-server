@@ -36,7 +36,11 @@ describe('update flow (draft → upload → finalize → promote → cancel)', (
     });
 
     after(async () => {
-        await gitlab.close();
+        try {
+            await facade?.stop();
+        } finally {
+            await gitlab?.close();
+        }
     });
 
     test('create draft → upload ios launch + image asset → finalize → status=staging', async () => {

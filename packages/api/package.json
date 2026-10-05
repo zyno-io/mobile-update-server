@@ -15,21 +15,24 @@
         "postinstall": "tsf-install"
     },
     "dependencies": {
-        "@aws-sdk/client-s3": "^3.1085.0",
-        "@aws-sdk/s3-request-presigner": "^3.1085.0",
-        "@types/lodash": "^4.17.24",
+        "@aws-sdk/client-s3": "^3.1146.0",
+        "@aws-sdk/s3-request-presigner": "^3.1146.0",
+        "@types/lodash": "^4.17.25",
         "@types/mime-types": "^3.0.1",
-        "@zyno-io/ts-server-foundation": "26.712.2244",
-        "axios": "^1.18.1",
-        "fast-jwt": "^6.2.4",
-        "googleapis": "^173.0.0",
+        "@zyno-io/ts-server-foundation": "26.1003.2308",
+        "axios": "^1.20.0",
+        "fast-jwt": "^6.3.4",
+        "googleapis": "^183.0.0",
         "lodash": "^4.18.1",
         "mime-types": "^3.0.2"
     },
     "devDependencies": {
-        "@types/node": "^26.1.1",
+        "@types/node": "^26.6.4",
         "dotenv-cli": "^11.0.0",
-        "ttsc": "0.18.3",
+        "ttsc": "0.30.4",
         "typescript": "7.0.2"
+    },
+    "tsf": {
+        "compiler": false
     }
 }

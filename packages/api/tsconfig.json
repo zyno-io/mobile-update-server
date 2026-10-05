@@ -7,7 +7,7 @@
         "moduleResolution": "nodenext",
         "target": "ESNext",
         "module": "NodeNext",
-        "preserveSymlinks": true,
+        "preserveSymlinks": false,
         "esModuleInterop": true,
         "outDir": "./dist",
         "skipLibCheck": true,
@@ -20,12 +20,7 @@
             }
         ]
     },
-    "include": [
-        "src/**/*",
-        "tests/**/*"
-    ],
-    "exclude": [
-        "src/**/*.spec.ts"
-    ],
+    "include": ["src/**/*", "tests/**/*"],
+    "exclude": ["src/**/*.spec.ts"],
     "reflection": true
 }

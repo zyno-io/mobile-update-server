@@ -41,7 +41,11 @@ describe('manifest + native-status', () => {
     });
 
     after(async () => {
-        await gitlab.close();
+        try {
+            await facade?.stop();
+        } finally {
+            await gitlab?.close();
+        }
     });
 
     test('released update served to any device', async () => {
