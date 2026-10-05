@@ -7,6 +7,7 @@ RUN corepack enable
 COPY .yarn .yarn
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY packages/api/package.json packages/api/package.json
+COPY packages/api/tsconfig*.json packages/api/
 COPY packages/ui/package.json packages/ui/package.json
 COPY packages/cli/package.json packages/cli/package.json
 

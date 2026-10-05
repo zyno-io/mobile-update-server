@@ -29,10 +29,39 @@
     "devDependencies": {
         "@types/node": "^26.6.4",
         "dotenv-cli": "^11.0.0",
-        "ttsc": "0.30.4",
-        "typescript": "7.0.2"
+        "ttsc": "0.30.1",
+        "typescript": "^7.0.2"
     },
-    "tsf": {
-        "compiler": false
+    "dependenciesMeta": {
+        "@ttsc/darwin-arm64": {
+            "unplugged": true
+        },
+        "@ttsc/darwin-x64": {
+            "unplugged": true
+        },
+        "@ttsc/linux-arm": {
+            "unplugged": true
+        },
+        "@ttsc/linux-arm64": {
+            "unplugged": true
+        },
+        "@ttsc/linux-x64": {
+            "unplugged": true
+        },
+        "@ttsc/win32-arm64": {
+            "unplugged": true
+        },
+        "@ttsc/win32-x64": {
+            "unplugged": true
+        },
+        "protoc": {
+            "unplugged": true
+        },
+        "ts-proto": {
+            "unplugged": true
+        },
+        "ttsc": {
+            "unplugged": true
+        }
     }
 }
