@@ -1,0 +1,45 @@
+name: Publish CLI to npm
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install CLI dependencies
+        env:
+          YARN_ENABLE_IMMUTABLE_INSTALLS: 'true'
+        run: yarn workspaces focus @zyno-io/mobile-update-server-cli
+
+      - name: Build CLI
+        run: yarn workspace @zyno-io/mobile-update-server-cli build
+
+      - name: Set build version
+        run: |
+          BUILD_VERSION=$(TZ=UTC0 git show -s --format=%cd --date=format-local:'%y.%-m%d.%-H%M' HEAD)
+          echo "Publishing @zyno-io/mobile-update-server-cli@${BUILD_VERSION}"
+          cd packages/cli
+          npm pkg set version="${BUILD_VERSION}"
+
+      - name: Publish CLI to public npm
+        working-directory: packages/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+        run: npm publish --registry https://registry.npmjs.org/ --access public
