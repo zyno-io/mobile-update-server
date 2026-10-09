@@ -164,7 +164,7 @@ publish:cli:npm:
     - prepare build
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
+      when: on_success
   image: node:24
   before_script:
     - corepack enable
@@ -173,9 +173,9 @@ publish:cli:npm:
     echo "Publishing @zyno-io/mobile-update-server-cli@${BUILD_VERSION}"
     yarn workspace @zyno-io/mobile-update-server-cli build
     cd packages/cli
-    npm pkg set version=${BUILD_VERSION}
-    echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}" > ~/.npmrc
-    npm publish
+    npm pkg set version="${BUILD_VERSION}"
+    npm config set -- //${PRIVATE_NPM_HOST}/:_authToken="${PRIVATE_NPM_PUBLISHER_TOKEN}"
+    npm publish --registry "https://${PRIVATE_NPM_HOST}/"
 
 deploy:
   stage: deploy
@@ -193,3 +193,18 @@ deploy:
       --deploy-version $BUILD_VERSION
       --set version=${BUILD_VERSION}
       --set image=${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}
+
+mirror:
+  stage: mirror
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  image:
+    name: alpine/git
+    entrypoint: ['']
+  script: |
+    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
+    mkdir -p ~/.ssh
+    echo "$GITHUB_SSH_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+    chmod 600 ~/.ssh/id_ed25519
+    git remote add github git@github.com:zyno-io/mobile-update-server.git
+    git push -u github HEAD:main
