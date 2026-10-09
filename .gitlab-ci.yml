@@ -172,9 +172,9 @@ publish:cli:npm:
   script: |
     echo "Publishing @zyno-io/mobile-update-server-cli@${BUILD_VERSION}"
     yarn workspace @zyno-io/mobile-update-server-cli build
+    npm config set -- //${PRIVATE_NPM_HOST}/:_authToken="${PRIVATE_NPM_PUBLISHER_TOKEN}"
     cd packages/cli
     npm pkg set version="${BUILD_VERSION}"
-    npm config set -- //${PRIVATE_NPM_HOST}/:_authToken="${PRIVATE_NPM_PUBLISHER_TOKEN}"
     npm publish --registry "https://${PRIVATE_NPM_HOST}/"
 
 deploy:
