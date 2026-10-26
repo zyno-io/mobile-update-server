@@ -1957,23 +1957,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ttsc/darwin-arm64@npm:0.30.4":
-  version: 0.30.4
-  resolution: "@ttsc/darwin-arm64@npm:0.30.4"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
 "@ttsc/darwin-x64@npm:0.30.1":
   version: 0.30.1
   resolution: "@ttsc/darwin-x64@npm:0.30.1"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@ttsc/darwin-x64@npm:0.30.4":
-  version: 0.30.4
-  resolution: "@ttsc/darwin-x64@npm:0.30.4"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -2000,23 +1986,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ttsc/linux-arm64@npm:0.30.4":
-  version: 0.30.4
-  resolution: "@ttsc/linux-arm64@npm:0.30.4"
-  conditions: os=linux & cpu=arm64
-  languageName: node
-  linkType: hard
-
 "@ttsc/linux-arm@npm:0.30.1":
   version: 0.30.1
   resolution: "@ttsc/linux-arm@npm:0.30.1"
-  conditions: os=linux & cpu=arm
-  languageName: node
-  linkType: hard
-
-"@ttsc/linux-arm@npm:0.30.4":
-  version: 0.30.4
-  resolution: "@ttsc/linux-arm@npm:0.30.4"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
@@ -2028,13 +2000,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ttsc/linux-x64@npm:0.30.4":
-  version: 0.30.4
-  resolution: "@ttsc/linux-x64@npm:0.30.4"
-  conditions: os=linux & cpu=x64
-  languageName: node
-  linkType: hard
-
 "@ttsc/win32-arm64@npm:0.30.1":
   version: 0.30.1
   resolution: "@ttsc/win32-arm64@npm:0.30.1"
@@ -2042,23 +2007,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ttsc/win32-arm64@npm:0.30.4":
-  version: 0.30.4
-  resolution: "@ttsc/win32-arm64@npm:0.30.4"
-  conditions: os=win32 & cpu=arm64
-  languageName: node
-  linkType: hard
-
 "@ttsc/win32-x64@npm:0.30.1":
   version: 0.30.1
   resolution: "@ttsc/win32-x64@npm:0.30.1"
-  conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@ttsc/win32-x64@npm:0.30.4":
-  version: 0.30.4
-  resolution: "@ttsc/win32-x64@npm:0.30.4"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -2618,10 +2569,11 @@ __metadata:
     "@types/lodash": "npm:^4.17.25"
     "@types/mime-types": "npm:^3.0.1"
     "@types/node": "npm:^26.6.4"
-    "@zyno-io/ts-server-foundation": "npm:26.1003.2308"
+    "@zyno-io/ts-reflection": "npm:26.1026.1655"
+    "@zyno-io/ts-server-foundation": "npm:26.1026.1655"
     axios: "npm:^1.20.0"
     dotenv-cli: "npm:^11.0.0"
-    fast-jwt: "npm:^6.3.4"
+    fast-jwt: "npm:^6.3.3"
     googleapis: "npm:^183.0.0"
     lodash: "npm:^4.18.1"
     mime-types: "npm:^3.0.2"
@@ -2711,21 +2663,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@zyno-io/ts-reflection@npm:26.1003.2308":
-  version: 26.1003.2308
-  resolution: "@zyno-io/ts-reflection@npm:26.1003.2308"
+"@zyno-io/ts-reflection@npm:26.1026.1655":
+  version: 26.1026.1655
+  resolution: "@zyno-io/ts-reflection@npm:26.1026.1655"
   peerDependencies:
     ttsc: "*"
   peerDependenciesMeta:
     ttsc:
       optional: true
-  checksum: 10c0/0ccc98714c778c2bf8765cf556e1f48c4d564aa6a526d777fb871088bb5c151d2bce56ccd9b6ced9c23cf16c9c5ee025249022990de6c90187a1a691ffa75eac
+  checksum: 10c0/56157f32616755cda78f1006f7fbb8e7d46ce0f9f13f869f89e045b8601d8bbe57c5cf0a24cd0f656a68802ee5ed5d42f814a1e3004f0f0329c1e3c4899126ed
   languageName: node
   linkType: hard
 
-"@zyno-io/ts-server-foundation@npm:26.1003.2308":
-  version: 26.1003.2308
-  resolution: "@zyno-io/ts-server-foundation@npm:26.1003.2308"
+"@zyno-io/ts-server-foundation@npm:26.1026.1655":
+  version: 26.1026.1655
+  resolution: "@zyno-io/ts-server-foundation@npm:26.1026.1655"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.15.0"
     "@opentelemetry/api": "npm:^1.9.1"
@@ -2749,7 +2701,7 @@ __metadata:
     "@ttsc/graph": "npm:^0.30.1"
     "@types/ws": "npm:^8.18.1"
     "@zyno-io/config": "npm:^1.14.0"
-    "@zyno-io/ts-reflection": "npm:26.1003.2308"
+    "@zyno-io/ts-reflection": "npm:26.1026.1655"
     bcrypt: "npm:^6.0.0"
     bullmq: "npm:^6.3.4"
     busboy: "npm:^1.6.0"
@@ -2806,7 +2758,7 @@ __metadata:
     tsf-repl: dist/src/cli/tsf-repl.js
     tsf-test: dist/src/cli/tsf-test.js
     tsf-update: dist/src/cli/tsf-update.js
-  checksum: 10c0/0a48fb413871197d75ed8286c63c4547cc18a3265efd27e7a8b7b865b87f6285c8f0b16342eafc55b6fb6950277b4c5c627aebaf50380e36dd6af46909bbe286
+  checksum: 10c0/4945cbbded3af440a2955f259df8f70c9833a3ab61fa36c2c4e1bfb7a8972aeaa6e7bafdc6332fad0fab8705ed4c1a33fce3dac4bbc717b21bd5961feaaa4b24
   languageName: node
   linkType: hard
 
@@ -4089,7 +4041,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-jwt@npm:^6.3.3, fast-jwt@npm:^6.3.4":
+"fast-jwt@npm:^6.3.3":
   version: 6.3.4
   resolution: "fast-jwt@npm:6.3.4"
   dependencies:
@@ -5791,8 +5743,29 @@ __metadata:
     lefthook: "npm:^2.1.16"
     oxfmt: "npm:^0.71.0"
     oxlint: "npm:^1.86.0"
-    ttsc: "npm:0.30.4"
-    typescript: "npm:7.0.2"
+    ttsc: "npm:0.30.1"
+    typescript: "npm:^7.0.2"
+  dependenciesMeta:
+    "@ttsc/darwin-arm64":
+      unplugged: true
+    "@ttsc/darwin-x64":
+      unplugged: true
+    "@ttsc/linux-arm":
+      unplugged: true
+    "@ttsc/linux-arm64":
+      unplugged: true
+    "@ttsc/linux-x64":
+      unplugged: true
+    "@ttsc/win32-arm64":
+      unplugged: true
+    "@ttsc/win32-x64":
+      unplugged: true
+    protoc:
+      unplugged: true
+    ts-proto:
+      unplugged: true
+    ttsc:
+      unplugged: true
   languageName: unknown
   linkType: soft
 
@@ -7842,42 +7815,6 @@ __metadata:
     ttscserver: lib/launcher/ttscserver.js
     ttsx: lib/launcher/ttsx.js
   checksum: 10c0/9a4c95b5e3e17bd377d3be72746eda1daaab7e2063f256bb349f42b2c2eb580c244c1adc9d340c0600fc773c0691710e2d5239597d9fd71207327f4c19f8e0ba
-  languageName: node
-  linkType: hard
-
-"ttsc@npm:0.30.4":
-  version: 0.30.4
-  resolution: "ttsc@npm:0.30.4"
-  dependencies:
-    "@ttsc/darwin-arm64": "npm:0.30.4"
-    "@ttsc/darwin-x64": "npm:0.30.4"
-    "@ttsc/linux-arm": "npm:0.30.4"
-    "@ttsc/linux-arm64": "npm:0.30.4"
-    "@ttsc/linux-x64": "npm:0.30.4"
-    "@ttsc/win32-arm64": "npm:0.30.4"
-    "@ttsc/win32-x64": "npm:0.30.4"
-    acorn: "npm:8.16.0"
-    cjs-module-lexer: "npm:2.2.1"
-  dependenciesMeta:
-    "@ttsc/darwin-arm64":
-      optional: true
-    "@ttsc/darwin-x64":
-      optional: true
-    "@ttsc/linux-arm":
-      optional: true
-    "@ttsc/linux-arm64":
-      optional: true
-    "@ttsc/linux-x64":
-      optional: true
-    "@ttsc/win32-arm64":
-      optional: true
-    "@ttsc/win32-x64":
-      optional: true
-  bin:
-    ttsc: lib/launcher/ttsc.js
-    ttscserver: lib/launcher/ttscserver.js
-    ttsx: lib/launcher/ttsx.js
-  checksum: 10c0/a7c38675dd56ca477d667637701522f982054f5dedc16d99cf151fddc083edc31510e2ab250b77266f143cafcf80e871ac8bebfee9390bd38863c2a8df5d23b3
   languageName: node
   linkType: hard
 
