@@ -18,13 +18,15 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26.x
+          check-latest: true
+      - name: Install Corepack
+        run: |-
+          npm install --global corepack --force
+          corepack enable
 
       - name: Install npm with trusted publishing support
         run: npm install --global npm@11
-
-      - name: Enable Corepack
-        run: corepack enable
 
       - name: Install CLI dependencies
         env:

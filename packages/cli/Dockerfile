@@ -1,8 +1,8 @@
-FROM node:24-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /build
 
-RUN corepack enable
+RUN npm install --global corepack && corepack enable
 
 COPY .yarn .yarn
 COPY package.json yarn.lock .yarnrc.yml ./
@@ -15,7 +15,7 @@ RUN cd packages/cli && yarn build
 
 ###
 
-FROM node:24-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 

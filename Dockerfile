@@ -1,8 +1,8 @@
-FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable
+RUN npm install --global corepack && corepack enable
 
 COPY .yarn .yarn
 COPY package.json yarn.lock .yarnrc.yml ./
@@ -27,7 +27,7 @@ RUN yarn workspaces focus @zyno-io/mobile-update-server-api --production
 
 ###
 
-FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
+FROM node:26-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
