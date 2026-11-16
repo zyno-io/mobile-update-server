@@ -157,6 +157,78 @@ describe('manifest + native-status', () => {
         assert.strictEqual(response.statusCode, 404);
     });
 
+    describe('device id transport', () => {
+        const deviceRow = (deviceId: string) =>
+            DeviceStateEntity.query().filter({ appId: APP_ID, channelId: CHANNEL_ID, deviceId }).findOneOrUndefined();
+
+        test('expo-extra-params-only device gets canary targeting and a DeviceState row', async () => {
+            await clearUpdates();
+            await makeRelease('released');
+            const canary = await makeRelease('canary');
+            const response = await facade.request(manifestRequest(undefined, undefined, 'mus-device-id="canary-device-1"'));
+            assert.strictEqual(response.statusCode, 200);
+            assert.match(response.bodyString, new RegExp(`"id":"${canary.id.toLowerCase()}"`));
+            assert.ok(await deviceRow('canary-device-1'));
+        });
+
+        test('expo-extra-params-only device gets staging targeting', async () => {
+            await clearUpdates();
+            await makeRelease('released');
+            const staging = await makeRelease('staging');
+            const response = await facade.request(manifestRequest(undefined, undefined, 'mus-device-id="staging-device-1"'));
+            assert.match(response.bodyString, new RegExp(`"id":"${staging.id.toLowerCase()}"`));
+        });
+
+        test('legacy header-only device is unchanged', async () => {
+            await clearUpdates();
+            await makeRelease('released');
+            const canary = await makeRelease('canary');
+            const response = await facade.request(manifestRequest('canary-device-1'));
+            assert.match(response.bodyString, new RegExp(`"id":"${canary.id.toLowerCase()}"`));
+            assert.ok(await deviceRow('canary-device-1'));
+        });
+
+        test('extra param wins over a different legacy header', async () => {
+            await clearUpdates();
+            const released = await makeRelease('released');
+            const canary = await makeRelease('canary');
+            const extraWins = await facade.request(manifestRequest('some-other-device', undefined, 'mus-device-id="canary-device-1"'));
+            assert.match(extraWins.bodyString, new RegExp(`"id":"${canary.id.toLowerCase()}"`));
+            assert.ok(await deviceRow('canary-device-1'));
+            assert.ok(!(await deviceRow('some-other-device')));
+            const headerLoses = await facade.request(manifestRequest('canary-device-1', undefined, 'mus-device-id="some-other-device"'));
+            assert.match(headerLoses.bodyString, new RegExp(`"id":"${released.id.toLowerCase()}"`));
+        });
+
+        test('malformed expo-extra-params falls back to the header and still returns 200', async () => {
+            await clearUpdates();
+            await makeRelease('released');
+            const canary = await makeRelease('canary');
+            const response = await facade.request(manifestRequest('canary-device-1', undefined, 'mus-device-id="unterminated, ((('));
+            assert.strictEqual(response.statusCode, 200);
+            assert.match(response.bodyString, new RegExp(`"id":"${canary.id.toLowerCase()}"`));
+        });
+
+        test('__dynamic__ header is treated as absent', async () => {
+            await clearUpdates();
+            await makeRelease('released');
+            const response = await facade.request(manifestRequest('__dynamic__'));
+            assert.strictEqual(response.statusCode, 200);
+            assert.ok(!(await deviceRow('__dynamic__')));
+            assert.strictEqual(await DeviceStateEntity.query().filter({ appId: APP_ID }).count(), 0);
+        });
+
+        test('non-string SFV items for mus-device-id are ignored', async () => {
+            await clearUpdates();
+            await makeRelease('released');
+            for (const value of ['mus-device-id=abc', 'mus-device-id=123', 'mus-device-id', 'mus-device-id=?0', 'mus-device-id=(a b)']) {
+                const response = await facade.request(manifestRequest(undefined, undefined, value));
+                assert.strictEqual(response.statusCode, 200, value);
+            }
+            assert.strictEqual(await DeviceStateEntity.query().filter({ appId: APP_ID }).count(), 0);
+        });
+    });
+
     test('DeviceState row created on manifest hit with device-id', async () => {
         await clearUpdates();
         const released = await makeRelease('released');
@@ -569,7 +641,7 @@ async function makeRelease(status: 'staging' | 'canary' | 'released', overrides:
     return update;
 }
 
-function manifestRequest(deviceId?: string, currentUpdateId?: string) {
+function manifestRequest(deviceId?: string, currentUpdateId?: string, extraParams?: string) {
     const req = HttpRequest.GET(`/api/manifest/${APP_ID}`)
         .header('expo-protocol-version', '1')
         .header('expo-platform', 'ios')
@@ -577,6 +649,7 @@ function manifestRequest(deviceId?: string, currentUpdateId?: string) {
         .header('expo-channel-name', CHANNEL_ID)
         .header('accept', 'multipart/mixed');
     if (deviceId) req.header('mus-device-id', deviceId);
+    if (extraParams !== undefined) req.header('expo-extra-params', extraParams);
     if (currentUpdateId) req.header('expo-current-update-id', currentUpdateId);
     return req;
 }

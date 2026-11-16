@@ -6,7 +6,7 @@ A self-hosted Expo Updates server for distributing OTA updates to mobile apps. I
 
 - Multiple apps, each with multiple branch-bound channels
 - Per-channel, per-platform updates with `staging` / `canary` / `released` lifecycle, supersession, and one-click rollback
-- Canary targeting by device ID (sent in the `mus-device-id` request header)
+- Canary targeting by device ID (sent via `Updates.setExtraParamAsync('mus-device-id', id)`; the legacy `mus-device-id` request header is still accepted)
 - Device check-in metrics: % checked-in within window, % on a given update
 - Per-channel, per-platform **binary build** tracking (latest native version + fingerprint), so you can see what binaries are out there even when no OTA exists for them
 - GitLab OIDC login; project-level permissions mirror GitLab

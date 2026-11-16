@@ -35,7 +35,7 @@ Nothing special — `expo-updates` reads the manifest URL from `app.json` and sh
 
 ## 3. Tag a device for canary updates
 
-Canary updates target devices by ID. The mobile app sends the ID in the `mus-device-id` request header on every check-in:
+Canary updates target devices by ID. The mobile app registers the ID as an expo-updates extra param, which expo-updates sends on every manifest request in the `Expo-Extra-Params` header (as `mus-device-id="<id>"`):
 
 ```ts
 import * as Updates from 'expo-updates';
@@ -45,8 +45,12 @@ import * as Application from 'expo-application';
 // and `getAndroidId` return install-stable values; use whatever your privacy review allows.
 const deviceId = (await Application.getIosIdForVendorAsync()) ?? Application.getAndroidId() ?? 'unknown';
 
-await Updates.setUpdateRequestHeadersOverride({ 'mus-device-id': deviceId });
+await Updates.setExtraParamAsync('mus-device-id', deviceId);
 ```
+
+The server also still accepts the legacy plain `mus-device-id` request header (older app binaries send it). If both are present, the extra param wins. The values `''` and `__dynamic__` are treated as "no device id".
+
+> **Warning:** do NOT declare `mus-*` keys in `updates.requestHeaders`, and never call `setUpdateRequestHeadersOverride` for per-device values. expo-updates stamps every downloaded update with the request headers in effect and only launches updates whose stamp matches the current headers, so a runtime override makes the embedded update unlaunchable (emergency launches, OTA not applying on first cold start). Per-device values belong in extra params.
 
 Paste that ID into **Edit canary devices** in the UI for the channel. On the next check-in, that device will receive the canary update; everyone else gets the latest released update for the same runtime version.
 

@@ -3,6 +3,7 @@ import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 import { uuid } from '@zyno-io/ts-server-foundation';
 import { createPersistedEntity } from '@zyno-io/ts-server-foundation';
 import { randomBytes } from 'crypto';
+import { parseDictionary } from 'structured-headers';
 
 import { AppEntity } from '../entities/App.entity';
 import { ChannelEntity, IRolloutMember } from '../entities/Channel.entity';
@@ -150,8 +151,9 @@ export class ManifestController {
         if (typeof runtimeVersion !== 'string' || !runtimeVersion) return null;
         if (typeof channelIdRaw !== 'string' || !channelIdRaw) return null;
 
-        const deviceIdHeader = headers['mus-device-id'];
-        const deviceId = typeof deviceIdHeader === 'string' && deviceIdHeader ? deviceIdHeader : null;
+        // Precedence: Expo-Extra-Params `mus-device-id` (new clients) -> legacy `mus-device-id` header -> none.
+        const deviceId =
+            this.normalizeDeviceId(this.parseExtraParamDeviceId(headers['expo-extra-params'])) ?? this.normalizeDeviceId(headers['mus-device-id']);
 
         return {
             protocolVersion,
@@ -162,6 +164,26 @@ export class ManifestController {
             deviceId,
             accept
         };
+    }
+
+    /** Reads `mus-device-id` from the Expo-Extra-Params SFV dictionary; malformed input or non-string items yield null. */
+    private parseExtraParamDeviceId(raw: unknown): string | null {
+        if (typeof raw !== 'string' || !raw) return null;
+        try {
+            const item = parseDictionary(raw).get('mus-device-id');
+            if (!item || Array.isArray(item[0])) return null; // missing or inner list
+            return typeof item[0] === 'string' ? item[0] : null;
+        } catch (err) {
+            this.logger.debug(`Ignoring malformed expo-extra-params header: ${err}`);
+            return null;
+        }
+    }
+
+    private normalizeDeviceId(raw: unknown): string | null {
+        if (typeof raw !== 'string') return null;
+        const value = raw.trim();
+        if (!value || value.toLowerCase() === '__dynamic__' || value.length > 200) return null;
+        return value;
     }
 
     private async selectUpdate(appId: string, channel: ChannelEntity, parsed: ParsedRequest): Promise<UpdateEntity | null> {
