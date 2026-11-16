@@ -2665,6 +2665,7 @@ __metadata:
     googleapis: "npm:^188.0.0"
     lodash: "npm:^4.18.1"
     mime-types: "npm:^3.0.2"
+    structured-headers: "npm:^2.1.1"
     ttsc: "npm:0.34.2"
     typescript: "npm:^7.0.2"
   dependenciesMeta:
@@ -7786,6 +7787,13 @@ __metadata:
   dependencies:
     "@tokenizer/token": "npm:^0.3.0"
   checksum: 10c0/b0782803b9648489de25b7e820cd9b3a9a00ad47ab87d2704a1495c4c42b10f1c44d369a1c2c34976ed43630a776d5afa755dd665226182d5b20ad42d5b0115c
+  languageName: node
+  linkType: hard
+
+"structured-headers@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "structured-headers@npm:2.1.1"
+  checksum: 10c0/be8030e69444e3994c5cc46e69ac6c8bac7fa07ecf893791c1e8f9685451a5ee041140dce0d6d6aea4d5ae004c381b4fe04c3124d326c4b91b983203a6e55108
   languageName: node
   linkType: hard
 
